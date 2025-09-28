@@ -1,4 +1,4 @@
-# 구아바(구독서비스 정보 모아봐) 브랜치 전략 안내
+# 구아바(구독서비스 정보 모아봐) 프로젝트 브랜치 안내
 
 이 문서는 구아바 프로젝트 팀원들이 사용할 브랜치 전략을 정리한
 가이드입니다.\
@@ -20,16 +20,16 @@
 
 ## 🖥️ 역할별 브랜치
 
-  구분   브랜치명                       설명
-  ------ ------------------------------ ----------------------
-  FE     feature/fe-auth-ui             회원가입/로그인 UI
-  FE     feature/fe-service-list        서비스 검색/필터 UI
-  FE     feature/fe-subscription-ui     내 구독 리스트 UI
-  BE     feature/be-auth-api            회원가입/로그인 API
-  BE     feature/be-service-api         서비스 검색/상세 API
-  BE     feature/be-subscription-crud   구독 CRUD API
-  DB     feature/db-schema              DB 스키마/ERD 설계
-  DB     feature/db-init-data           초기 데이터 입력
+| 구분 | 브랜치명 | 설명 |
+|------|----------|------|
+| FE   | feature/fe-auth-ui          | 회원가입/로그인 UI |
+| FE   | feature/fe-service-list     | 서비스 검색/필터 UI |
+| FE   | feature/fe-subscription-ui  | 내 구독 리스트 UI |
+| BE   | feature/be-auth-api         | 회원가입/로그인 API |
+| BE   | feature/be-service-api      | 서비스 검색/상세 API |
+| BE   | feature/be-subscription-crud| 구독 CRUD API |
+| DB   | feature/db-schema           | DB 스키마/ERD 설계 |
+| DB   | feature/db-init-data        | 초기 데이터 입력 |
 
 ------------------------------------------------------------------------
 
