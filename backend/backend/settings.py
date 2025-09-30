@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'django_extensions',
-
+    'drf_spectacular',
     'users',
     'services',
 ]
@@ -65,6 +65,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.AllowAny",
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # (선택) SimpleJWT 옵션
