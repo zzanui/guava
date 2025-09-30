@@ -1,11 +1,15 @@
 # services/views.py
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny  # 누구나 접근 가능하도록 설정
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
 from .models import Service, Plan, Card, Telecom
-from .serializers import ServiceSerializer, PlanSerializer, CardSerializer, TelecomSerializer
+from .serializers import ServiceSerializer, ServiceDetailSerializer, \
+                        PlanSerializer, CardSerializer, TelecomSerializer
 
+from .filters import ServiceFilter
 
-# --- 핵심 마스터 데이터 API ---
 
 class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -14,8 +18,13 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
-    permission_classes = [AllowAny]  # 명시적으로 모든 권한 허용
+    filterset_class = ServiceFilter
+    permission_classes = [AllowAny]
 
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ServiceDetailSerializer
+        return ServiceSerializer
 
 class PlanViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -50,3 +59,19 @@ class TelecomViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Telecom.objects.all()
     serializer_class = TelecomSerializer
     permission_classes = [AllowAny]
+
+
+class ComparisonView(APIView):
+    def get(self, request):
+        ids_str = request.query_params.get('ids', '')
+        if not ids_str:
+            return Response({"error": "No service IDs provided"}, status=400)
+
+        try:
+            service_ids = [int(id) for id in ids_str.split(',')][:5]
+        except ValueError:
+            return Response({"error": "Invalid ID format"}, status=400)
+
+        services = Service.objects.filter(pk__in=service_ids)
+        serializer = ServiceDetailSerializer(services, many=True)
+        return Response(serializer.data)

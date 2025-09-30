@@ -12,7 +12,16 @@ class ServiceSerializer(serializers.ModelSerializer):
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plan
-        fields = '__all__'
+        fields = ['plan_name', 'price', 'benefits', 'payment_cycle', 'free_trial']
+
+
+class ServiceDetailSerializer(serializers.ModelSerializer):
+    # Service에 연결된 Plan들을 PlanSerializer를 통해 함께 보여줌
+    plans = PlanSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Service
+        fields = ['id', 'name', 'category', 'logo_url', 'official_link', 'plans']
 
 
 class CardSerializer(serializers.ModelSerializer):

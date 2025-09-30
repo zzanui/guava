@@ -13,15 +13,16 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 
-#커스텀 유저 사용
+# 커스텀 유저 사용
 AUTH_USER_MODEL = "users.User"
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-#내가 만든 로그인방식
-AUTHENTICATION_BACKENDS =[
-    "users.backends.UsernameBackend", #직접 만든 백엔드
+# 내가 만든 로그인방식
+AUTHENTICATION_BACKENDS = [
+    # 직접 만든 백엔드
+    "users.backends.UsernameBackend",
 ]
 
 # Quick-start development settings - unsuitable for production
@@ -49,6 +50,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
+    'django_extensions',
 
     'users',
     'services',
@@ -61,6 +64,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
 # (선택) SimpleJWT 옵션
