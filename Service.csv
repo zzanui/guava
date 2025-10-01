@@ -1,0 +1,30 @@
+service_id,name,category,description,official_link
+1,Netflix,video,글로벌 영상 스트리밍 서비스,https://help.netflix.com/ko/node/24926
+2,TVING,video,국내 방송사 CJ ENM·JTBC 콘텐츠 중심 OTT 서비스,https://www.tving.com/onboarding
+3,Wavve,video,KBS·MBC·SBS 콘텐츠와 영화·드라마 제공 OTT 서비스,https://www.wavve.com/voucher?voucher-type=wavve
+4,Disney+,video,"Disney, Marvel 콘텐츠 중심 OTT 서비스",https://www.disneyplus.com/ko-kr?cid=DSS-SEARCH-NaverSA-0000000001_SEM_NBS&dss_kw=all&NaPm=ct%3Dmfp2zz59%7Cci%3DERf93ec679%2D945f%2D11f0%2Dab2d%2D7e530af7e242%7Ctr%3Dbrnd%7Chk%3D96fd47d9a52970f6bc028aa79dfc4e69968b74aa%7Cnacn%3DsyekDghMlKuGA&gclid=CMra4YTj4Y8DFYqsrAIdUzkBmQ&gclsrc=ds&gad_source=7
+5,Youtube Premium,video,광고 없는 유튜브 및 유튜브 뮤직 이용 서비스,https://www.youtube.com/premium?ybp=Sg0IBhIJdW5saW1pdGVk4AEB
+6,ChatGPT,AI,자연어 처리 기반 대화형 AI 챗봇 서비스,https://chatgpt.com/ko-KR/pricing/
+7,Gemini,AI,Google의 멀티모달 AI 모델 기반 생성형 서비스,https://gemini.google/subscriptions/
+8,Cursor,AI,AI 보조 기능이 탑재된 코드 편집기,https://cursor.com/pricing
+9,Claude,AI,안트로픽이 개발한 대화형 생성형 AI 서비스,https://claude.com/pricing
+10,배달의민족,delivery,음식 배달 및 편의점 장보기 플랫폼,
+11,요기요,delivery,음식 배달 및 포장 플랫,
+12,쿠팡,shopping,"로켓 배송, 쿠팡잇츠, 쿠팡 플레이 서비스",https://loyalty.coupang.com/loyalty/sign-up/home
+13,네이버 쇼핑,shopping,상품 검색·가격 비교 기반 온라인 쇼핑 서비스,https://nid.naver.com/membership/join?dtm_source=naver_brandsearch&dtm_medium=search
+14,신세계몰,shopping,백화점·마트 상품을 온라인으로 제공하는 쇼핑몰,https://www.ssg.com/membership/gate.ssg)
+15,Spotify,music,글로벌 음악 스트리밍 플랫폼,https://www.spotify.com/kr-ko/premium/?utm_source=kr_brand_none_text&utm_medium=paidsearch&utm_campaign=alwayson_kr_kr_premiumbusiness_koreasearch+all+prem_brand+text+bmm+kr+google&gad_source=1&gad_campaignid=21249264431&gclid=CjwKCAjwlt7GBhAvEiwAKal0cpKOfntuX6eHTX_vBU44xjTJ_djTgjm0yhP_x7HSTcdkdZiqTOkmghoCdlcQAvD_BwE#plans
+16,Melon,music,국내 최대 음원 스트리밍 서비스,https://www.melon.com/buy/pamphlet/all.htm
+17,지니 뮤직,music,KT 계열의 온라인 음악 스트리밍 서비스,https://pay.genie.co.kr/buy/recommend
+18,apple music,music,apple이 운영하는 글로벌 음악 스트리밍 서비스,https://www.apple.com/apple-music/#plans
+19,notion,productivity,메모·문서·데이터베이스를 통합한 올인원 협업 도구,https://www.notion.com/pricing
+20,Office365,productivity,워드·엑셀·파워포인트 등 오피스 프로그램과 클라우드 기반 생산성 서비스,https://www.microsoft.com/ko-kr/microsoft-365/business/microsoft-365-plans-and-pricing?msockid=270b8356966b648c35b6974497f8650a
+21,Zoom,productivity,온라인 화상회의 및 원격 협업 플랫폼,https://zoom.us/pricing
+22,Google Workspace,productivity,G-mail·문서·드라이브·캘린더 통합 클라우드 생산성 서비스,https://workspace.google.com/pricing
+23,Adobe Creative Claud,design,포토샵·일러스트레이터 등 크리에이티브 소프트웨어 구독 서비스,https://www.adobe.com/creativecloud/plans.html?msockid=270b8356966b648c35b6974497f8650a
+24,AutoCAD,design,설계·건축·3D 디자인을 위한 CAD 소프트웨어,https://www.autodesk.com/products/autocad/overview?msockid=270b8356966b648c35b6974497f8650a
+25,Canva,design,온라인 그래픽 디자인 및 콘텐츠 제작 툴,https://www.canva.com/ko_kr/pricing/?msockid=270b8356966b648c35b6974497f8650a
+26,Figma,design,UI/UX 디자인 및 프로토타이핑 협업 도구,https://www.figma.com/ko-kr/pricing/
+27,Dropbox,cloud_storage,클라우드 파일 저장·공유 서비스,https://www.dropbox.com/plans
+28,Google One,cloud_storage,구글 드라이브 스토리지 확장 및 멤버십 서비스,https://one.google.com/about/plans?hl=ko&g1_landing_page=0
+29,icloud+,cloud_storage,애플 기기용 클라우드 저장 및 백업 서비스,https://support.apple.com/en-us/108047

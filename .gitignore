@@ -1,0 +1,6 @@
+venv/
+
+*.env
+.env.*
+*.txt
+*.sqlite3
