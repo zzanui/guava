@@ -26,6 +26,7 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
             return ServiceDetailSerializer
         return ServiceSerializer
 
+
 class PlanViewSet(viewsets.ReadOnlyModelViewSet):
     """
     특정 서비스에 속한 요금제 목록 및 상세 정보를 조회합니다.
