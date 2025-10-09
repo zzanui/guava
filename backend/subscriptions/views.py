@@ -16,6 +16,10 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         요청을 보낸 사용자의 구독 목록만 필터링해서 반환합니다.
         이것이 없으면 모든 유저의 구독 정보가 노출될 수 있습니다.
         """
+        if getattr(self, 'swagger_fake_view', False):
+            # 스키마 생성 시에는 빈 쿼리셋 반환
+            return Subscription.objects.none()
+
         return Subscription.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
