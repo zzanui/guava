@@ -1,41 +1,71 @@
-// src/pages/LoginPage.js
-import { useState } from "react";
+import React, { useState } from "react";
+import { login } from "../services/authService";
 
-export default function LoginPage() {
+function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = () => {
-    alert(`로그인 시도: ${email}`);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      await login(email, password);
+      alert("✅ 로그인 성공!");
+      window.location.href = "/mypage"; // 로그인 후 이동
+    } catch (err) {
+      console.error(err);
+      setError("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요.");
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-      <h1 className="text-2xl font-bold mb-6">로그인</h1>
-      <input
-        type="email"
-        placeholder="이메일"
-        className="border p-2 mb-2 w-72 rounded"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="비밀번호"
-        className="border p-2 mb-4 w-72 rounded"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button
-        onClick={handleLogin}
-        className="bg-blue-500 text-white px-4 py-2 rounded w-72"
-      >
-        로그인
-      </button>
-      <p className="mt-4 text-sm text-gray-600">
-        아직 회원이 아니신가요?{" "}
-        <span className="text-blue-500 cursor-pointer">회원가입</span>
-      </p>
+    <div style={{ maxWidth: "400px", margin: "0 auto", padding: "2rem" }}>
+      <h2>로그인</h2>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: "1rem" }}>
+          <label>이메일</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{ width: "100%", padding: "0.5rem" }}
+          />
+        </div>
+        <div style={{ marginBottom: "1rem" }}>
+          <label>비밀번호</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{ width: "100%", padding: "0.5rem" }}
+          />
+        </div>
+        <button
+          type="submit"
+          style={{
+            width: "100%",
+            backgroundColor: "#00c853",
+            color: "white",
+            padding: "0.75rem",
+            border: "none",
+            borderRadius: "5px",
+            fontSize: "1rem",
+          }}
+        >
+          로그인
+        </button>
+      </form>
+      {error && (
+        <p style={{ color: "red", marginTop: "1rem", fontSize: "0.9rem" }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
+
+export default LoginPage;
