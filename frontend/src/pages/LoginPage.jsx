@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { login } from "../services/authService";
 
 function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [id, setid] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -11,12 +11,12 @@ function LoginPage() {
     setError("");
 
     try {
-      await login(email, password);
+      await login(id, password);
       alert("✅ 로그인 성공!");
       window.location.href = "/mypage"; // 로그인 후 이동
     } catch (err) {
       console.error(err);
-      setError("❌ 로그인 실패: 이메일 또는 비밀번호를 확인하세요.");
+      setError("❌ 로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
     }
   };
 
@@ -25,11 +25,11 @@ function LoginPage() {
       <h2>로그인</h2>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "1rem" }}>
-          <label>이메일</label>
+          <label>아이디</label>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="id"
+            value={id}
+            onChange={(e) => setid(e.target.value)}
             required
             style={{ width: "100%", padding: "0.5rem" }}
           />
