@@ -12,7 +12,8 @@ class ServiceSerializer(serializers.ModelSerializer):
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plan
-        fields = ['plan_name', 'price', 'benefits', 'payment_cycle', 'free_trial']
+        # fields = ['plan_name', 'price', 'benefits', 'billing_cycle']
+        fields = '__all__'
 
 
 class ServiceDetailSerializer(serializers.ModelSerializer):
