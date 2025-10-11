@@ -55,17 +55,34 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'users',
     'services',
+    'subscriptions',
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    # 프로젝트 기본 권한 : AllowAny (필요 시 수정 해주세요.)
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
+    # 쓰로틀링 관련 설정들
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+
+    # 쓰로틀 종류별로 지정된 시간동안 호출가능 횟수를 설정
+    # 이 횟수를 초과하면 서버는 클라이언트에게 HTTP 429(Too Many Requests)를 반환합니다.
+    'DEFAULT_THROTTLE_RATES': {
+        # 익명(비로그인) 사용자는 분당 100회
+        'anon': '100/min',
+        # 로그인 사용자는 분당 1천회
+        'user': '1000/min',
+    }
 }
 
 # (선택) SimpleJWT 옵션
