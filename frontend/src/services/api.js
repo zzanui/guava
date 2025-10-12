@@ -1,22 +1,6 @@
+// src/services/api.js
 import axios from "axios";
-
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000/api", // Django 서버 주소
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: import.meta.env.VITE_API_BASE_URL, // http://127.0.0.1:8000
 });
-
-// JWT 토큰 자동 첨부
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 export default api;
