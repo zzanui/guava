@@ -6,7 +6,7 @@ export default function RegisterPage() {
     username: "",
     name: "",
     display_name: "",
-       email: "",
+    email: "",
     password: "",
     password2: "",
   });
