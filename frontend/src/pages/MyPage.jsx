@@ -1,4 +1,4 @@
-// src/pages/MyPage.js
+// src/pages/MyPage.jsx
 export default function MyPage() {
     return (
       <div className="p-6">
@@ -32,3 +32,5 @@ export default function MyPage() {
       </div>
     );
   }
+
+

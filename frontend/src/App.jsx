@@ -2,6 +2,8 @@ import React from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
+import MyPage from "./pages/MyPage.jsx";
+import RequireAuth from "./components/RequireAuth.jsx";
 
 function App() {
   return (
@@ -30,6 +32,14 @@ function App() {
           <Route path="/" element={<h3>메인 페이지 (준비 중)</h3>} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/mypage"
+            element={
+              <RequireAuth>
+                <MyPage />
+              </RequireAuth>
+            }
+          />
           <Route path="*" element={<h3>404 - 페이지를 찾을 수 없습니다</h3>} />
         </Routes>
       </main>

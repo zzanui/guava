@@ -1,8 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { login } from "../services/authService";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 
 function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [id, setid] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -13,8 +16,8 @@ function LoginPage() {
 
     try {
       await login(id, password);
-      alert("✅ 로그인 성공!");
-      window.location.href = "/mypage"; // 로그인 후 이동
+      const to = location.state?.from?.pathname || "/mypage";
+      navigate(to, { replace: true });
     } catch (err) {
       console.error(err);
       setError("❌ 로그인 실패: 아이디 또는 비밀번호를 확인하세요.");
