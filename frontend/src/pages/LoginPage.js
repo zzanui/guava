@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { login } from "../services/authService";
 
 function LoginPage() {
@@ -27,7 +28,7 @@ function LoginPage() {
         <div style={{ marginBottom: "1rem" }}>
           <label>아이디</label>
           <input
-            type="id"
+            type="text"
             value={id}
             onChange={(e) => setid(e.target.value)}
             required
@@ -59,6 +60,10 @@ function LoginPage() {
           로그인
         </button>
       </form>
+      <div style={{ marginTop: "1rem", textAlign: "right" }}>
+        <span style={{ marginRight: "0.5rem" }}>계정이 없으신가요?</span>
+        <Link to="/register">회원가입</Link>
+      </div>
       {error && (
         <p style={{ color: "red", marginTop: "1rem", fontSize: "0.9rem" }}>
           {error}

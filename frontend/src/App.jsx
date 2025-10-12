@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Link } from "react-router-dom";
-import LoginPage from "./pages/LoginPage.jsx";
+import LoginPage from "./pages/LoginPage.js";
+import RegisterPage from "./pages/RegisterPage.js";
 
 function App() {
   return (
@@ -17,6 +18,9 @@ function App() {
           <Link to="/login" style={{ marginRight: "1rem" }}>
             로그인
           </Link>
+          <Link to="/register" style={{ marginRight: "1rem" }}>
+            회원가입
+          </Link>
           <Link to="/mypage">마이페이지</Link>
         </nav>
       </header>
@@ -25,6 +29,7 @@ function App() {
         <Routes>
           <Route path="/" element={<h3>메인 페이지 (준비 중)</h3>} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="*" element={<h3>404 - 페이지를 찾을 수 없습니다</h3>} />
         </Routes>
       </main>
