@@ -1,48 +1,38 @@
 import React from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import MyPage from "./pages/MyPage.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import ServiceSearchPage from "./pages/ServiceSearchPage.jsx";
+import SubscriptionListPage from "./pages/SubscriptionListPage.jsx";
+import ComparisonPage from "./pages/ComparisonPage.jsx";
+import ServiceDetailPage from "./pages/ServiceDetailPage.jsx";
+import CategoryPage from "./pages/CategoryPage.jsx";
 
 function App() {
   return (
-    <div>
-      <header
-        style={{
-          padding: "1rem",
-          backgroundColor: "#f5f5f5",
-          borderBottom: "1px solid #ddd",
-        }}
-      >
-        <h2>🍈 구아바 (Guava)</h2>
-        <nav>
-          <Link to="/login" style={{ marginRight: "1rem" }}>
-            로그인
-          </Link>
-          <Link to="/register" style={{ marginRight: "1rem" }}>
-            회원가입
-          </Link>
-          <Link to="/mypage">마이페이지</Link>
-        </nav>
-      </header>
-
-      <main style={{ padding: "2rem" }}>
-        <Routes>
-          <Route path="/" element={<h3>메인 페이지 (준비 중)</h3>} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/mypage"
-            element={
-              <RequireAuth>
-                <MyPage />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<h3>404 - 페이지를 찾을 수 없습니다</h3>} />
-        </Routes>
-      </main>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/mypage"
+          element={
+            <RequireAuth>
+              <MyPage />
+            </RequireAuth>
+          }
+        />
+        <Route path="/search" element={<ServiceSearchPage />} />
+        <Route path="/subscriptions" element={<SubscriptionListPage />} />
+        <Route path="/compare" element={<ComparisonPage />} />
+        <Route path="/services/:id" element={<ServiceDetailPage />} />
+        <Route path="/categories/:slug" element={<CategoryPage />} />
+        <Route path="*" element={<h3>404 - 페이지를 찾을 수 없습니다</h3>} />
+      </Routes>
     </div>
   );
 }

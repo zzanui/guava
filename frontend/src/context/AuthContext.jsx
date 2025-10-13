@@ -89,6 +89,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const scheduleRefresh = useCallback((jwt) => {
+    const DISABLE_REFRESH = import.meta?.env?.VITE_DISABLE_REFRESH === "true";
+    if (DISABLE_REFRESH) return; // 개발 단계에서 백엔드 미가동 시 리프레시 비활성화
     clearRefreshTimer();
     if (!jwt) return;
     try {
@@ -122,16 +124,19 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (accessToken) {
       scheduleRefresh(accessToken);
-      // 프로필 병합 시도 (엔드포인트 없으면 무시)
-      fetchMe()
-        .then((profile) => {
-          if (!profile) return;
-          setUser((prev) => ({
-            ...(prev || { isAuthenticated: true }),
-            ...profile,
-          }));
-        })
-        .catch(() => {});
+      // 프로필 병합 시도는 옵션으로만 수행 (백엔드 미가동/미구현 시 불필요한 500 방지)
+      const enableBootstrapProfile = import.meta?.env?.VITE_BOOTSTRAP_PROFILE === "true";
+      if (enableBootstrapProfile) {
+        fetchMe()
+          .then((profile) => {
+            if (!profile) return;
+            setUser((prev) => ({
+              ...(prev || { isAuthenticated: true }),
+              ...profile,
+            }));
+          })
+          .catch(() => {});
+      }
     }
   }, []);
 

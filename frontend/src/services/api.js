@@ -43,6 +43,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error?.config || {};
     const status = error?.response?.status;
+    const DISABLE_REFRESH = import.meta?.env?.VITE_DISABLE_REFRESH === "true";
 
     // 조건: 401이며, 아직 재시도한 적 없는 요청, 그리고 로그인/리프레시 요청 자체가 아닌 경우만 처리
     const isAuthPath = typeof originalRequest.url === "string" && (
@@ -50,7 +51,7 @@ api.interceptors.response.use(
       originalRequest.url.includes("/api/auth/refresh/")
     );
 
-    if (status === 401 && !originalRequest._retry && !isAuthPath) {
+    if (!DISABLE_REFRESH && status === 401 && !originalRequest._retry && !isAuthPath) {
       const refreshToken = getRefreshToken();
       if (!refreshToken) {
         // 리프레시 토큰이 없으면 바로 실패 처리

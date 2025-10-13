@@ -1,10 +1,12 @@
 // src/pages/HomePage.jsx
 import { Link, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext.jsx";
 
 export default function HomePage() {
   const nav = useNavigate();
-  const signedIn = useMemo(() => !!localStorage.getItem("access"), []);
+  const auth = useContext(AuthContext);
+  const signedIn = useMemo(() => Boolean(auth?.isAuthenticated || localStorage.getItem("access")), [auth?.isAuthenticated]);
   const [q, setQ] = useState("");
 
   const handleSearch = (e) => {
@@ -14,30 +16,42 @@ export default function HomePage() {
     nav(`/search?q=${encodeURIComponent(q.trim())}`);
   };
 
+  const handleLogout = async () => {
+    try {
+      await auth?.logout?.();
+    } catch (_) {}
+    nav("/");
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Header */}
       <header className="border-b border-white/10 backdrop-blur sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2" aria-label="Guava 홈으로 이동">
             <span className="inline-block h-8 w-8 rounded-xl bg-cyan-400/20 ring-1 ring-cyan-400/40" />
             <span className="font-semibold text-lg">구아바</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
-            <Link className="hover:text-cyan-300" to="/compare">가격비교</Link>
-            <Link className="hover:text-cyan-300" to="/categories">카테고리</Link>
-            <Link className="hover:text-cyan-300" to="/blog">블로그</Link>
+            <Link className="hover:text-cyan-300 focus-ring" to="/compare">가격비교</Link>
+            <Link className="hover:text-cyan-300 focus-ring" to="/subscriptions">내 구독</Link>
+            <Link className="hover:text-cyan-300 focus-ring" to="/blog">블로그/공지</Link>
           </nav>
           <div className="flex items-center gap-3">
             {signedIn ? (
-              <Link to="/mypage" className="rounded-xl px-4 py-2 bg-white/10 hover:bg-white/15 transition">
-                마이페이지
-              </Link>
+              <>
+                <Link to="/mypage" className="rounded-2xl px-4 py-2 bg-white/10 hover:bg-white/15 transition shadow-lg focus-ring" aria-label="마이페이지로 이동">
+                  마이페이지
+                </Link>
+                <button onClick={handleLogout} className="px-4 py-2 rounded-2xl hover:bg-white/10 transition shadow-lg focus-ring" aria-label="로그아웃">
+                  로그아웃
+                </button>
+              </>
             ) : (
               <>
-                <Link to="/login" className="px-4 py-2 rounded-xl hover:bg-white/10 transition">로그인</Link>
-                <Link to="/signup" className="px-4 py-2 rounded-xl bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition">
-                  무료로 시작하기
+                <Link to="/login" className="px-4 py-2 rounded-2xl hover:bg-white/10 transition shadow-lg focus-ring" aria-label="로그인 페이지로 이동">로그인</Link>
+                <Link to="/register" className="px-4 py-2 rounded-2xl bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring" aria-label="무료로 시작하기">
+                  회원가입
                 </Link>
               </>
             )}
@@ -53,8 +67,21 @@ export default function HomePage() {
               구독, 한 곳에서 <span className="text-cyan-400">비교·관리</span>하세요
             </h1>
             <p className="mt-4 text-slate-300">
-              넷플릭스부터 클라우드까지—가격·혜택을 한눈에 비교하고, 결제일 알림과 소비 리포트로 새는 돈을 막아줘요.
+              OTT부터 클라우드까지 — 가격·혜택을 한눈에 비교하고, 결제일 알림과 소비 리포트로 새는 돈을 막아줘요.
             </p>
+
+            <div className="mt-6 flex items-center gap-3">
+              {!signedIn && (
+                <>
+                  <Link to="/register" className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring" aria-label="무료로 시작하기 CTA">
+                    회원가입
+                  </Link>
+                  <Link to="/compare" className="rounded-2xl px-5 py-3 bg-white/10 hover:bg-white/15 transition shadow-lg focus-ring" aria-label="데모 보기">
+                    예시 보기
+                  </Link>
+                </>
+              )}
+            </div>
 
             <form onSubmit={handleSearch} className="mt-8 flex items-center gap-3">
               <input
@@ -66,7 +93,8 @@ export default function HomePage() {
               />
               <button
                 type="submit"
-                className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition"
+                className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring"
+                aria-label="검색 실행"
               >
                 검색
               </button>
@@ -75,8 +103,8 @@ export default function HomePage() {
             {!signedIn && (
               <div className="mt-4 text-sm text-slate-400">
                 아직 계정이 없나요?{" "}
-                <Link className="text-cyan-300 underline decoration-dotted" to="/signup">
-                  1분 만에 가입
+                <Link className="text-cyan-300 underline decoration-dotted" to="/register">
+                  1분 만에 가입!
                 </Link>
               </div>
             )}
@@ -108,7 +136,7 @@ export default function HomePage() {
       </section>
 
       {/* Value Props */}
-      <section className="mx-auto max-w-7xl px-4 py-12 md:py-20">
+      <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
         <div className="grid md:grid-cols-3 gap-6">
           <Feature
             title="가격 한눈에"
@@ -125,19 +153,45 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Quick Categories */}
-      <section className="mx-auto max-w-7xl px-4 pb-20">
-        <h2 className="text-2xl font-bold mb-4">인기 카테고리</h2>
+      {/* Quick Links */}
+      <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+        <h2 className="text-3xl md:text-4xl font-extrabold leading-tight mb-6">바로가기</h2>
         <div className="flex flex-wrap gap-3">
-          {["영상", "음악", "클라우드", "생산성", "교육"].map((c) => (
+          {["넷플릭스", "디즈니+", "유튜브프리미엄", "티빙", "웨이브"].map((name) => (
             <Link
-              key={c}
-              to={`/categories/${encodeURIComponent(c)}`}
-              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+              key={name}
+              to={`/search?q=${encodeURIComponent(name)}`}
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition focus-ring"
+              aria-label={`${name} 검색 바로가기`}
             >
-              #{c}
+              #{name}
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+        <h2 className="text-3xl md:text-4xl font-extrabold leading-tight mb-8">어떻게 작동하나요?</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { step: "1", title: "검색", desc: "원하는 서비스를 검색해요." },
+            { step: "2", title: "추가", desc: "내 구독에 추가해요." },
+            { step: "3", title: "자동 알림", desc: "결제일 전에 미리 알려줘요." },
+          ].map((s) => (
+            <div key={s.step} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
+              <div className="text-cyan-400 font-extrabold text-xl">{s.step}</div>
+              <div className="mt-2 font-semibold text-lg">{s.title}</div>
+              <p className="mt-1 text-slate-400">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Social Proof Placeholder */}
+      <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+        <div className="rounded-2xl bg-slate-900/60 p-8 ring-1 ring-white/10 text-center">
+          <div className="text-sm text-slate-400">후기와 지표가 곧 업데이트될 예정입니다.</div>
         </div>
       </section>
 
