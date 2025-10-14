@@ -94,6 +94,8 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     # db에 last_login 필드가 없으므로 False로 설정
     "UPDATE_LAST_LOGIN": False,
+    'USER_ID_FIELD': 'user_id',
+    'USER_ID_CLAIM': 'user_id',
 }
 
 MIDDLEWARE = [

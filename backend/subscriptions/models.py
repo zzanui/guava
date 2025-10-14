@@ -3,27 +3,24 @@ from django.conf import settings
 from django.db import models
 from services.models import Plan # services 앱의 Plan 모델을 가져옴
 
+#사용자별 구독서비스 사용목록
 class Subscription(models.Model):
-    # 어떤 유저의 구독 정보인지 연결 (User가 삭제되면, 구독 정보도 함께 삭제)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='subscriptions'
-    )
-    # 어떤 요금제를 구독했는지 연결
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE)
+    id = models.BigAutoField(db_column="subscription_id", help_text="Subscription ID", primary_key=True)
+    user = models.ForeignKey(to=settings.AUTH_USER_MODEL, db_column="user_id", related_name="subscriptions", on_delete=models.CASCADE)
+    plan = models.ForeignKey(to="services.Plan", db_column="plan_id", related_name="subscriptions", on_delete=models.CASCADE)
+    status = models.BooleanField(db_column="status", default=True)
+    start_date = models.DateField(db_column="start_date")
+    next_payment_date = models.DateField(db_column="next_payment_date")
+    custom_memo = models.TextField(db_column="custom_memo")
+    price_override = models.DecimalField(db_column="price_override", max_digits=10, decimal_places=2 , null=True, blank=True)
+    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True)
+    updated_at = models.DateTimeField(db_column="updated_at", auto_now=True)
 
-    # 추가 정보들
-    start_date = models.DateField(verbose_name="구독 시작일")
-    custom_price = models.PositiveIntegerField(
-        verbose_name="사용자 정의 가격",
-        null=True, # 사용자가 직접 입력하지 않아도 됨
-        blank=True
-    )
-    # ... 그 외 메모, 결제 주기 등 필요한 필드 추가 ...
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        db_table = 'subscription'   # 실제 테이블명 그대로
+        managed = False         # Django가 테이블을 만들거나 변경하지 않음
 
     def __str__(self):
-        return f"{self.user.username}의 {self.plan.plan_name} 구독"
+        plan_name = getattr(self.plan, "plan_name", "Unknown")
+        username = getattr(self.user, "username", "Unknown")
+        return f"{username}의 {plan_name} 구독"
