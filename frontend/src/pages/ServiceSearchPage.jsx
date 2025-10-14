@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link, useSearchParams } from "react-router-dom";
 import ServiceCard from "../components/ServiceCard.jsx";
 import { searchServices } from "../services/mockApi";
 
@@ -14,12 +14,58 @@ export default function ServiceSearchPage() {
   const query = useQuery();
   const q = query.get("q")?.trim() || "";
   const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
   const [sort, setSort] = useState("recommended");
   const [onlyOtt, setOnlyOtt] = useState(false);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [benefitChips, setBenefitChips] = useState(["FHD", "4K", "광고 제거"]);
+  const [selectedBenefits, setSelectedBenefits] = useState([]);
+  const [freeTrial, setFreeTrial] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [opCategory, setOpCategory] = useState("or");
+
+  useEffect(() => {
+    // URL -> 상태 초기화 (첫 마운트 시)
+    const sortP = query.get("sort");
+    if (sortP) setSort(sortP);
+    const onlyOttP = query.get("onlyOtt");
+    if (onlyOttP === "1" || onlyOttP === "true") setOnlyOtt(true);
+    const minP = query.get("min");
+    const maxP = query.get("max");
+    if (minP) setMinPrice(minP);
+    if (maxP) setMaxPrice(maxP);
+    const freeP = query.get("free");
+    if (freeP === "1" || freeP === "true") setFreeTrial(true);
+    const opCat = query.get("opCat");
+    if (opCat === "and" || opCat === "or") setOpCategory(opCat);
+    const benefitAll = query.getAll("benefit");
+    if (benefitAll.length) setSelectedBenefits(benefitAll);
+    const cats = query.getAll("cat");
+    if (cats.length) setCategories(cats);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // 상태 -> URL 동기화
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (sort && sort !== "recommended") params.set("sort", sort);
+    if (onlyOtt) params.set("onlyOtt", "1");
+    if (minPrice) params.set("min", String(minPrice));
+    if (maxPrice) params.set("max", String(maxPrice));
+    if (freeTrial) params.set("free", "1");
+    if (opCategory && opCategory !== "or") params.set("opCat", opCategory);
+    selectedBenefits.forEach((b) => params.append("benefit", b));
+    categories.forEach((c) => params.append("cat", c));
+    const prev = searchParams.toString();
+    const next = params.toString();
+    if (prev !== next) setSearchParams(params, { replace: true });
+  }, [q, sort, onlyOtt, minPrice, maxPrice, selectedBenefits, freeTrial, categories, opCategory, searchParams, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,7 +73,17 @@ export default function ServiceSearchPage() {
       setLoading(true);
       setError("");
       try {
-        const rows = await searchServices({ q, onlyOtt, sort });
+        const rows = await searchServices({
+          q,
+          onlyOtt,
+          sort,
+          categories,
+          opCategory,
+          minPrice: minPrice ? Number(minPrice) : undefined,
+          maxPrice: maxPrice ? Number(maxPrice) : undefined,
+          benefits: selectedBenefits,
+          freeTrial,
+        });
         if (!cancelled) setItems(rows);
       } catch (e) {
         if (!cancelled) setError("검색 중 오류가 발생했어요.");
@@ -39,7 +95,7 @@ export default function ServiceSearchPage() {
     return () => {
       cancelled = true;
     };
-  }, [q, onlyOtt, sort]);
+  }, [q, onlyOtt, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits, freeTrial]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -61,17 +117,35 @@ export default function ServiceSearchPage() {
               />
               OTT만 보기
             </label>
+            <button
+              type="button"
+              onClick={() => nav(-1)}
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+              aria-label="이전 페이지로 이동"
+            >
+              이전
+            </button>
+            <Link
+              to="/"
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+              aria-label="홈으로 이동"
+            >
+              홈으로
+            </Link>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col md:flex-row gap-3">
+        <div className="mt-6 rounded-2xl bg-slate-900/60 p-4 md:p-6 ring-1 ring-white/10">
+        <div className="flex flex-col md:flex-row gap-3">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const form = e.currentTarget;
               const input = form.querySelector('input[name="q"]');
               const next = input?.value?.trim() || "";
-              nav(`/search?q=${encodeURIComponent(next)}`);
+              const params = new URLSearchParams(searchParams);
+              if (next) params.set("q", next); else params.delete("q");
+              setSearchParams(params, { replace: true });
             }}
             className="flex-1 flex items-center gap-3"
             role="search"
@@ -86,7 +160,7 @@ export default function ServiceSearchPage() {
             />
             <button
               type="submit"
-              className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring"
+              className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring whitespace-nowrap"
               aria-label="검색 실행"
             >
               검색
@@ -108,6 +182,60 @@ export default function ServiceSearchPage() {
               <option value="nameAsc">가나다순</option>
             </select>
           </div>
+        </div>
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2">
+              <label className="text-sm block mb-1">카테고리</label>
+              <div className="flex flex-wrap gap-2">
+                {["ott","music","cloud","productivity","education","gaming","news","devtools"].map((c)=>{
+                  const active = categories.includes(c);
+                  return (
+                    <button key={c} type="button" onClick={()=> setCategories(prev=> active? prev.filter(x=>x!==c): [...prev, c])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'bg-cyan-400 text-slate-900' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>#{c}</button>
+                  );
+                })}
+                <select value={opCategory} onChange={(e)=>setOpCategory(e.target.value)} className="rounded-2xl bg-slate-900 border border-white/10 px-3 py-2">
+                  <option value="or">OR</option>
+                  <option value="and">AND</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm block mb-1" htmlFor="min">최소 가격</label>
+              <input id="min" type="number" inputMode="numeric" className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2" placeholder="0" value={minPrice} onChange={(e)=>setMinPrice(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm block mb-1" htmlFor="max">최대 가격</label>
+              <input id="max" type="number" inputMode="numeric" className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2" placeholder="20000" value={maxPrice} onChange={(e)=>setMaxPrice(e.target.value)} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm block mb-1">혜택</label>
+              <div className="flex flex-wrap gap-2">
+                {benefitChips.map((b)=>{
+                  const active = selectedBenefits.includes(b);
+                  return (
+                    <button key={b} type="button" onClick={()=>setSelectedBenefits(prev=> active? prev.filter(x=>x!==b): [...prev,b])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'bg-cyan-400 text-slate-900' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>{b}</button>
+                  )
+                })}
+              </div>
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" className="accent-cyan-400" checked={freeTrial} onChange={(e)=>setFreeTrial(e.target.checked)} />
+              무료체험
+            </label>
+            <button type="button" onClick={()=>{setMinPrice("");setMaxPrice("");setSelectedBenefits([]);setFreeTrial(false);setCategories([]);}} className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15">필터 초기화</button>
+          </div>
+          {(selectedBenefits.length>0 || minPrice || maxPrice || freeTrial || categories.length>0) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-slate-400 mr-1">적용된 필터:</span>
+              {categories.map((c)=> (<span key={c} className="px-2 py-1 rounded-2xl bg-white/10">#{c}</span>))}
+              {minPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최소 {minPrice}</span>}
+              {maxPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최대 {maxPrice}</span>}
+              {freeTrial && <span className="px-2 py-1 rounded-2xl bg-white/10">무료체험</span>}
+              {selectedBenefits.map((b)=> (
+                <span key={b} className="px-2 py-1 rounded-2xl bg-white/10">{b}</span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-6">

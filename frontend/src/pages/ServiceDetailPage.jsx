@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getServiceDetail } from "../services/mockApi";
+import { addSubscription as addLocal } from "../services/localSubscriptions.js";
 
 export default function ServiceDetailPage() {
   const { id } = useParams();
@@ -39,7 +40,10 @@ export default function ServiceDetailPage() {
             <ul className="mt-3 space-y-2">
               {data.plans.map((p) => (
                 <li key={p.name} className="flex items-center justify-between">
-                  <div className="font-medium">{p.name}</div>
+                  <div>
+                    <div className="font-medium">{p.name}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{p.cycle || "월"} 결제 {p.freeTrial ? "· 무료체험 제공" : ""}</div>
+                  </div>
                   <div className="text-slate-300">{p.price}</div>
                 </li>
               ))}
@@ -81,6 +85,11 @@ export default function ServiceDetailPage() {
             </div>
           </div>
         </div>
+        {data.officialUrl && (
+          <div className="mt-6">
+            <a href={data.officialUrl} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">공식 페이지로 이동 ↗</a>
+          </div>
+        )}
       </div>
       {open && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
@@ -90,7 +99,15 @@ export default function ServiceDetailPage() {
             <p className="mt-2 text-slate-300">{data.name} · {selectedPlan}</p>
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
-              <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-2xl bg-cyan-400 text-slate-900 font-semibold hover:opacity-90">추가</button>
+              <button
+                onClick={() => {
+                  addLocal({ name: data.name + " " + selectedPlan, priceValue: Number((data.plans.find(p=>p.name===selectedPlan)?.price || "0").replace(/[^0-9]/g, "")) });
+                  setOpen(false);
+                }}
+                className="px-4 py-2 rounded-2xl bg-cyan-400 text-slate-900 font-semibold hover:opacity-90"
+              >
+                추가
+              </button>
             </div>
           </div>
         </div>

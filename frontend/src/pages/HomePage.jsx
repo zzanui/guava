@@ -29,13 +29,13 @@ export default function HomePage() {
       <header className="border-b border-white/10 backdrop-blur sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="Guava 홈으로 이동">
-            <span className="inline-block h-8 w-8 rounded-xl bg-cyan-400/20 ring-1 ring-cyan-400/40" />
+            <img src="/guava-logo.png" alt="GUAVA 로고" className="h-8 w-8 rounded" />
             <span className="font-semibold text-lg">구아바</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link className="hover:text-cyan-300 focus-ring" to="/compare">가격비교</Link>
             <Link className="hover:text-cyan-300 focus-ring" to="/subscriptions">내 구독</Link>
-            <Link className="hover:text-cyan-300 focus-ring" to="/blog">블로그/공지</Link>
+            <Link className="hover:text-cyan-300 focus-ring" to="/blog">공지사항</Link>
           </nav>
           <div className="flex items-center gap-3">
             {signedIn ? (
@@ -172,7 +172,7 @@ export default function HomePage() {
 
       {/* How it works */}
       <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
-        <h2 className="text-3xl md:text-4xl font-extrabold leading-tight mb-8">어떻게 작동하나요?</h2>
+        <h2 className="text-3xl md:text-4xl font-extrabold leading-tight mb-8">어떻게 이용하나요?</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { step: "1", title: "검색", desc: "원하는 서비스를 검색해요." },

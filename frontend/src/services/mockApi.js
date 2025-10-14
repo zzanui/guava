@@ -19,7 +19,7 @@ function delay(ms = 150) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-export async function searchServices({ q = "", onlyOtt = false, sort = "recommended", category } = {}) {
+export async function searchServices({ q = "", onlyOtt = false, sort = "recommended", category, categories = [], opCategory = "or", minPrice, maxPrice, benefits = [], freeTrial = false } = {}) {
   await delay(120);
   let rows = SERVICES;
   if (q) {
@@ -30,6 +30,27 @@ export async function searchServices({ q = "", onlyOtt = false, sort = "recommen
   }
   if (category) {
     rows = rows.filter((s) => s.category === category);
+  }
+  if (Array.isArray(categories) && categories.length > 0) {
+    if (opCategory === "or") {
+      rows = rows.filter((s) => categories.includes(s.category));
+    } else {
+      // AND의 경우 단일 카테고리 데이터에서는 OR과 동일 동작
+      rows = rows.filter((s) => categories.includes(s.category));
+    }
+  }
+  if (typeof minPrice === "number") {
+    rows = rows.filter((s) => s.priceValue >= minPrice);
+  }
+  if (typeof maxPrice === "number") {
+    rows = rows.filter((s) => s.priceValue <= maxPrice);
+  }
+  if (Array.isArray(benefits) && benefits.length > 0) {
+    rows = rows.filter((s) => benefits.every((b) => (s.benefits || []).includes(b)));
+  }
+  if (freeTrial) {
+    // 목업: 무료체험은 넷플릭스/디즈니+만 있다고 가정
+    rows = rows.filter((s) => ["넷플릭스", "디즈니+"].includes(s.name));
   }
   if (sort === "priceAsc") {
     rows = [...rows].sort((a, b) => a.priceValue - b.priceValue);
@@ -64,9 +85,10 @@ export async function getServiceDetail(id) {
   return {
     id: base.id,
     name: base.name,
+    officialUrl: base.name === "넷플릭스" ? "https://www.netflix.com/kr/" : base.name === "디즈니+" ? "https://www.disneyplus.com/ko-kr" : undefined,
     plans: [
-      { name: "Basic", price: base.price.replace("/월", ""), benefits: ["FHD", "1명"] },
-      { name: "Standard", price: "₩ 13,500", benefits: ["FHD", "2명"] },
+      { name: "Basic", price: base.price.replace("/월", ""), cycle: "월", freeTrial: true, benefits: ["FHD", "1명"] },
+      { name: "Standard", price: "₩ 13,500", cycle: "월", freeTrial: false, benefits: ["FHD", "2명"] },
     ],
   };
 }

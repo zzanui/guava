@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getComparison } from "../services/mockApi";
 
@@ -7,10 +7,12 @@ function formatCurrency(krw) {
 }
 
 export default function ComparisonPage() {
+  const nav = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sort, setSort] = useState("recommended");
+  const [selected, setSelected] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +56,23 @@ export default function ComparisonPage() {
               <option value="nameAsc">가나다순</option>
             </select>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => nav(-1)}
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+              aria-label="이전 페이지로 이동"
+            >
+              이전
+            </button>
+            <Link
+              to="/"
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+              aria-label="홈으로 이동"
+            >
+              홈으로
+            </Link>
+          </div>
         </div>
 
         <div className="mt-8 overflow-x-auto rounded-2xl ring-1 ring-white/10">
@@ -61,6 +80,7 @@ export default function ComparisonPage() {
             <caption className="sr-only">구독 서비스의 정가, 할인, 번들 가격 비교 테이블</caption>
             <thead className="bg-white/5 text-slate-300">
               <tr>
+                <th scope="col" className="px-4 py-3">선택</th>
                 <th scope="col" className="px-4 py-3">상품</th>
                 <th scope="col" className="px-4 py-3">정가</th>
                 <th scope="col" className="px-4 py-3">할인</th>
@@ -70,16 +90,17 @@ export default function ComparisonPage() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-3 text-slate-400">로딩 중…</td>
+                  <td colSpan={5} className="px-4 py-3 text-slate-400">로딩 중…</td>
                 </tr>
               )}
               {error && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-3 text-red-400">{error}</td>
+                  <td colSpan={5} className="px-4 py-3 text-red-400">{error}</td>
                 </tr>
               )}
               {!loading && !error && rows.map((r) => (
                 <tr key={r.name} className="border-t border-white/10">
+                  <td className="px-4 py-3"><input type="checkbox" className="accent-cyan-400" checked={Boolean(selected[r.name])} onChange={(e)=> setSelected(prev=> ({...prev, [r.name]: e.target.checked}))} /></td>
                   <th scope="row" className="px-4 py-3 font-medium">{r.name}</th>
                   <td className="px-4 py-3">{formatCurrency(r.regular)}</td>
                   <td className="px-4 py-3 text-cyan-300">
@@ -100,6 +121,7 @@ export default function ComparisonPage() {
             </tbody>
           </table>
         </div>
+        <div className="mt-3 text-sm text-slate-400">선택 {Object.values(selected).filter(Boolean).length}개</div>
 
         <div className="mt-6">
           <Link to="/" className="text-cyan-300 hover:underline">홈으로 돌아가기 →</Link>
