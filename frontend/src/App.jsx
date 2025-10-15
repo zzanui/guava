@@ -1,35 +1,40 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import MyPage from "./pages/MyPage.jsx";
+import RequireAuth from "./components/RequireAuth.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import ServiceSearchPage from "./pages/ServiceSearchPage.jsx";
+import SubscriptionListPage from "./pages/SubscriptionListPage.jsx";
+import ComparisonPage from "./pages/ComparisonPage.jsx";
+import ServiceDetailPage from "./pages/ServiceDetailPage.jsx";
+import CategoryPage from "./pages/CategoryPage.jsx";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/mypage"
+          element={
+            <RequireAuth>
+              <MyPage />
+            </RequireAuth>
+          }
+        />
+        <Route path="/search" element={<ServiceSearchPage />} />
+        <Route path="/subscriptions" element={<SubscriptionListPage />} />
+        <Route path="/compare" element={<ComparisonPage />} />
+        <Route path="/services/:id" element={<ServiceDetailPage />} />
+        <Route path="/categories/:slug" element={<CategoryPage />} />
+        <Route path="*" element={<h3>404 - 페이지를 찾을 수 없습니다</h3>} />
+      </Routes>
+    </div>
+  );
 }
 
-export default App
+export default App;
