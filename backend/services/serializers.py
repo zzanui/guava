@@ -22,7 +22,8 @@ class ServiceDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Service
-        fields = ['id', 'name', 'category', 'logo_url', 'official_link', 'plans']
+        # fields = ['id', 'name', 'category', 'official_link', 'plans']
+        fields = '__all__'
 
 
 class CardSerializer(serializers.ModelSerializer):

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, Link, useSearchParams } from "react-router-dom";
 import ServiceCard from "../components/ServiceCard.jsx";
-import { searchServices } from "../services/mockApi";
-
+// import { searchServices } from "../services/mockApi";
+import { getServices } from "../services/serviceService.js";
 // 목업 데이터는 mockApi에서 제공
 
 function useQuery() {
@@ -67,26 +67,62 @@ export default function ServiceSearchPage() {
     if (prev !== next) setSearchParams(params, { replace: true });
   }, [q, sort, onlyOtt, minPrice, maxPrice, selectedBenefits, freeTrial, categories, opCategory, searchParams, setSearchParams]);
 
+useEffect(() => {
+let cancelled = false;
+async function run() {
+  setLoading(true);
+  setError("");
+  try {
+    // 💡 1. 이제 백엔드에 '검색어(q)'만 파라미터로 보냅니다.
+    const apiParams = {
+      q: q,
+    };
+
+    // 💡 2. 수정한 apiParams 객체로 서비스 '목록'을 요청합니다.
+    const rows = await getServices(apiParams);
+
+    if (!cancelled) setItems(rows);
+  } catch (e) {
+    console.error("API 호출 중 오류 발생:", e); // 디버깅을 위해 콘솔 로그 추가
+    if (!cancelled) setError("서비스 목록을 불러오는 중 오류가 발생했어요.");
+  } finally {
+    if (!cancelled) setLoading(false);
+  }
+}
+
+run();
+
+return () => {
+  cancelled = true;
+};
+// 💡 3. 의존성 배열도 'q'만 남겨서, 검색어가 바뀔 때만 API를 호출하도록 합니다.
+}, [q]);
+
+/*
   useEffect(() => {
     let cancelled = false;
     async function run() {
       setLoading(true);
       setError("");
       try {
-        const rows = await searchServices({
-          q,
-          onlyOtt,
-          sort,
-          categories,
-          opCategory,
-          minPrice: minPrice ? Number(minPrice) : undefined,
-          maxPrice: maxPrice ? Number(maxPrice) : undefined,
-          benefits: selectedBenefits,
-          freeTrial,
+        const rows = await getServices({
+        q,
+        onlyOtt, // 이 필터도 filters.py에 추가해야 합니다.
+        sort,
+        categories,
+        opCategory,
+        min_price: minPrice ? Number(minPrice) : undefined, // minPrice -> min_price
+        max_price: maxPrice ? Number(maxPrice) : undefined, // maxPrice -> max_price
+        benefits: selectedBenefits,
+        freeTrial,
         });
         if (!cancelled) setItems(rows);
       } catch (e) {
-        if (!cancelled) setError("검색 중 오류가 발생했어요.");
+        if (!cancelled)
+        {
+            setError("검색 중 오류가 발생했어요.");
+            console.error("API 호출 중 오류 발생:", e);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -96,7 +132,7 @@ export default function ServiceSearchPage() {
       cancelled = true;
     };
   }, [q, onlyOtt, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits, freeTrial]);
-
+*/
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
@@ -250,9 +286,21 @@ export default function ServiceSearchPage() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {items.map((s) => (
-              <ServiceCard key={s.id} {...s} />
-            ))}
+          {items.map((s) => (
+    // 💡 1. 각 'service' 객체에서 우리가 가진 정보만 꺼내 씁니다.
+    <Link
+      key={s.id}
+      to={`/services/${s.id}`} // 💡 2. 클릭하면 상세 페이지로 이동하도록 설정
+      className="block p-6 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
+    >
+      {/* service.name은 데이터에 있으므로 잘 나옵니다. */}
+      <h3 className="text-xl font-bold">{s.name}</h3>
+
+      {/* 💡 3. 데이터에 있는 category와 description도 표시해 줍니다. */}
+      <p className="mt-2 text-slate-400">{s.category}</p>
+      <p className="mt-1 text-sm text-slate-500">{s.description}</p>
+    </Link>
+  ))}
           </div>
         </div>
       </div>

@@ -9,7 +9,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         source='plan.service.name', read_only=True, allow_null=True
     )
     plan_price = serializers.DecimalField(source='plan.price', read_only=True, max_digits=10, decimal_places=2)
-    
 
     class Meta:
         model = Subscription

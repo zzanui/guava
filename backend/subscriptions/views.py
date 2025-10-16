@@ -10,6 +10,7 @@ from django.db.models.functions import Coalesce
 from decimal import Decimal
 from django.db.models import Sum
 
+
 class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
     # 이 API는 반드시 로그인한 사용자만 접근 가능
@@ -24,7 +25,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             # 스키마 생성 시에는 빈 쿼리셋 반환
             return Subscription.objects.none()
-         # 로그인한 본인 것만
+        # 로그인한 본인 것만
         return Subscription.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -37,15 +38,15 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         if getattr(self, 'swagger_fake_view', False):
             return Response({'count': 0, 'results': [], 'total_price': Decimal('0')})
-        
 
         queryset = self.filter_queryset(
             self.get_queryset().select_related("plan") 
         )
         
-        #price_override가 있으면 그 값을, 없으면 plan.price를 합산
+        # price_override가 있으면 그 값을, 없으면 plan.price를 합산
         total_price = queryset.aggregate(
-            total=Sum(Coalesce('price_override', 'plan__price', output_field=models.DecimalField(max_digits=10, decimal_places=2)))
+            total=Sum(Coalesce('price_override', 'plan__price',
+                               output_field=models.DecimalField(max_digits=10, decimal_places=2)))
         )['total'] or Decimal('0')
 
         serializer = self.get_serializer(queryset, many=True)
