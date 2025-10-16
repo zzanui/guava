@@ -22,14 +22,16 @@ class UserManager(BaseUserManager):
         return self.create_user(username, password, **extra_fields)
 #사용자
 class User(AbstractBaseUser):
-    user_id = models.BigAutoField(primary_key=True)              # PK
-    username = models.CharField(max_length=50, unique=True)      # 아이디(로그인 식별자)
-    email = models.EmailField(null=True, blank=True)             # 이메일(선택, 고유 제약 필요시 unique=True)
-    password = models.CharField(max_length=128)                  # 비밀번호 해시
-    social_id = models.CharField(max_length=100, null=True, blank=True, unique=True)  # 네이버/카카오 등
-    name = models.CharField(max_length=50)                       # 사용자 이름
-    display_name = models.CharField(max_length=50)               # 닉네임
-    created_at = models.DateTimeField(auto_now_add=True)         # 생성일
+    last_login = None   # ← 필드 제거
+
+    user_id = models.BigAutoField(db_column="user_id", primary_key=True)              # PK
+    username = models.CharField(db_column="user_name", max_length=50, unique=True)      # 아이디(로그인 식별자)
+    email = models.EmailField(db_column="email", null=True, blank=True)             # 이메일(선택, 고유 제약 필요시 unique=True)
+    password = models.CharField(db_column="password", max_length=128)                  # 비밀번호 해시
+    social_id = models.CharField(db_column="social_id", max_length=100, null=True, blank=True, unique=True)  # 네이버/카카오 등
+    name = models.CharField(db_column="name", max_length=50)                       # 사용자 이름
+    display_name = models.CharField(db_column="display_name", max_length=50)               # 닉네임
+    created_at = models.DateTimeField(db_column="created_at", auto_now_add=True)         # 생성일
 
     objects = UserManager()
 
@@ -38,6 +40,7 @@ class User(AbstractBaseUser):
     REQUIRED_FIELDS = []   # createsuperuser 시 추가로 물을 필드지만 관리자계정 필드는 별도로 관리할 예정이므로 필요없음
 
     class Meta:
+        managed = False      # 테이블 건드리지 않음
         db_table = "user"  # 팀 테이블명과 일치해야하므로 추후 수정
 
     # 권한/활성화 컬럼을 안 쓰므로 속성으로 True 반환(인증 흐름 호환용)
