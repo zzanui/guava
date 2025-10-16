@@ -13,6 +13,7 @@ export default function ComparisonPage() {
   const [error, setError] = useState("");
   const [sort, setSort] = useState("recommended");
   const [selected, setSelected] = useState({});
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +60,30 @@ export default function ComparisonPage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
+              onClick={() => setShowSelectedOnly((v) => !v)}
+              aria-pressed={showSelectedOnly}
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+            >
+              {showSelectedOnly ? "전체 보기" : "선택만 보기"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const headers = ["상품","정가","할인","번들"];
+                const visible = rows.filter((r)=> showSelectedOnly ? Boolean(selected[r.name]) : true);
+                const data = visible.map((r)=> [r.name, r.regular||"", r.discount||"", r.bundle||""]);
+                const csv = [headers, ...data].map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'comparison.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+              }}
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+            >
+              CSV 내보내기
+            </button>
+            <button
+              type="button"
               onClick={() => nav(-1)}
               className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition"
               aria-label="이전 페이지로 이동"
@@ -98,7 +123,7 @@ export default function ComparisonPage() {
                   <td colSpan={5} className="px-4 py-3 text-red-400">{error}</td>
                 </tr>
               )}
-              {!loading && !error && rows.map((r) => (
+              {!loading && !error && rows.filter((r)=> showSelectedOnly ? Boolean(selected[r.name]) : true).map((r) => (
                 <tr key={r.name} className="border-t border-white/10">
                   <td className="px-4 py-3"><input type="checkbox" className="accent-cyan-400" checked={Boolean(selected[r.name])} onChange={(e)=> setSelected(prev=> ({...prev, [r.name]: e.target.checked}))} /></td>
                   <th scope="row" className="px-4 py-3 font-medium">{r.name}</th>
@@ -121,7 +146,7 @@ export default function ComparisonPage() {
             </tbody>
           </table>
         </div>
-        <div className="mt-3 text-sm text-slate-400">선택 {Object.values(selected).filter(Boolean).length}개</div>
+        <div className="mt-3 text-sm text-slate-400">선택 {Object.values(selected).filter(Boolean).length}개 · 표시 {rows.filter((r)=> showSelectedOnly ? Boolean(selected[r.name]) : true).length}개</div>
 
         <div className="mt-6">
           <Link to="/" className="text-cyan-300 hover:underline">홈으로 돌아가기 →</Link>

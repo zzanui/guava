@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getServiceDetail } from "../services/mockApi";
 import { addSubscription as addLocal } from "../services/localSubscriptions.js";
+import { toggleFavorite } from "../services/localPrefs.js";
 
 export default function ServiceDetailPage() {
   const { id } = useParams();
@@ -32,7 +33,10 @@ export default function ServiceDetailPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
-        <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">{data.name}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">{data.name}</h1>
+          <button onClick={()=> toggleFavorite(data.name)} className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15">즐겨찾기</button>
+        </div>
 
         <div className="mt-6 grid md:grid-cols-2 gap-6">
           <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">

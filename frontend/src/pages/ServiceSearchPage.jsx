@@ -28,6 +28,8 @@ export default function ServiceSearchPage() {
   const [freeTrial, setFreeTrial] = useState(false);
   const [categories, setCategories] = useState([]);
   const [opCategory, setOpCategory] = useState("or");
+  const [page, setPage] = useState(1);
+  const pageSize = 9;
 
   useEffect(() => {
     // URL -> 상태 초기화 (첫 마운트 시)
@@ -47,6 +49,8 @@ export default function ServiceSearchPage() {
     if (benefitAll.length) setSelectedBenefits(benefitAll);
     const cats = query.getAll("cat");
     if (cats.length) setCategories(cats);
+    const p = query.get("page");
+    if (p && !Number.isNaN(Number(p))) setPage(Math.max(1, Number(p)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -62,10 +66,11 @@ export default function ServiceSearchPage() {
     if (opCategory && opCategory !== "or") params.set("opCat", opCategory);
     selectedBenefits.forEach((b) => params.append("benefit", b));
     categories.forEach((c) => params.append("cat", c));
+    if (page > 1) params.set("page", String(page));
     const prev = searchParams.toString();
     const next = params.toString();
     if (prev !== next) setSearchParams(params, { replace: true });
-  }, [q, sort, onlyOtt, minPrice, maxPrice, selectedBenefits, freeTrial, categories, opCategory, searchParams, setSearchParams]);
+  }, [q, sort, onlyOtt, minPrice, maxPrice, selectedBenefits, freeTrial, categories, opCategory, page, searchParams, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +100,11 @@ export default function ServiceSearchPage() {
     return () => {
       cancelled = true;
     };
+  }, [q, onlyOtt, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits, freeTrial]);
+
+  // 필터 변경 시 페이지 리셋
+  useEffect(() => {
+    setPage(1);
   }, [q, onlyOtt, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits, freeTrial]);
 
   return (
@@ -243,16 +253,41 @@ export default function ServiceSearchPage() {
           <div className="sr-only" aria-live="polite" aria-atomic="true">
             {loading ? "로딩 중" : error ? `오류: ${error}` : `${items.length}건의 결과`}
           </div>
-          {loading && <div className="text-slate-400" role="status" aria-live="polite">로딩 중…</div>}
+          {loading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" role="status" aria-live="polite">
+              {Array.from({ length: pageSize }).map((_, i) => (
+                <div key={i} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10 animate-pulse h-32" />
+              ))}
+            </div>
+          )}
           {error && <div className="text-red-400" role="alert">{error}</div>}
           {!loading && !error && items.length === 0 && (
             <div className="text-slate-400">검색 결과가 없습니다.</div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {items.map((s) => (
+            {items.slice((page-1)*pageSize, page*pageSize).map((s) => (
               <ServiceCard key={s.id} {...s} />
             ))}
+          </div>
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 disabled:opacity-50"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              이전
+            </button>
+            <div className="text-sm text-slate-400">
+              페이지 {page} / {Math.max(1, Math.ceil(items.length / pageSize))}
+            </div>
+            <button
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 disabled:opacity-50"
+              onClick={() => setPage((p) => (p < Math.ceil(items.length / pageSize) ? p + 1 : p))}
+              disabled={page >= Math.ceil(items.length / pageSize)}
+            >
+              다음
+            </button>
           </div>
         </div>
       </div>

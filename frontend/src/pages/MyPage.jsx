@@ -1,11 +1,13 @@
 // src/pages/MyPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { listSubscriptions, removeSubscription, monthlyTotal } from "../services/localSubscriptions.js";
+import { getPrefs, setNotification, removeFavorite } from "../services/localPrefs.js";
 
 export default function MyPage() {
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [prefs, setPrefs] = useState(getPrefs());
 
   useEffect(() => {
     setLoading(true);
@@ -72,21 +74,30 @@ export default function MyPage() {
       <section className="mb-6 rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
         <h2 className="text-2xl font-bold mb-2">알림 설정</h2>
         <label className="block">
-          <input type="checkbox" /> 이메일 알림
+          <input type="checkbox" checked={prefs.notifications.email} onChange={(e)=> setPrefs((p)=> ({...p, notifications: setNotification('email', e.target.checked)}))} /> 이메일 알림
         </label>
         <label className="block">
-          <input type="checkbox" /> 푸시 알림
+          <input type="checkbox" checked={prefs.notifications.push} onChange={(e)=> setPrefs((p)=> ({...p, notifications: setNotification('push', e.target.checked)}))} /> 푸시 알림
         </label>
         <label className="block">
-          <input type="checkbox" /> 문자 알림
+          <input type="checkbox" checked={prefs.notifications.sms} onChange={(e)=> setPrefs((p)=> ({...p, notifications: setNotification('sms', e.target.checked)}))} /> 문자 알림
         </label>
       </section>
 
       <section className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
         <h2 className="text-2xl font-bold mb-2">즐겨찾기</h2>
-        <ul className="list-disc pl-6 text-slate-300">
-          <li>예시 항목</li>
-        </ul>
+        {prefs.favorites.length === 0 ? (
+          <div className="text-slate-300">즐겨찾기한 서비스가 없습니다.</div>
+        ) : (
+          <ul className="list-disc pl-6 text-slate-300">
+            {prefs.favorites.map((name)=> (
+              <li key={name} className="flex items-center justify-between">
+                <span>{name}</span>
+                <button className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15" onClick={()=> setPrefs((p)=> ({...p, favorites: removeFavorite(name)}))}>삭제</button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
