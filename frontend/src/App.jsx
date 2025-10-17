@@ -27,7 +27,14 @@ function App() {
           }
         />
         <Route path="/search" element={<ServiceSearchPage />} />
-        <Route path="/subscriptions" element={<SubscriptionListPage />} />
+        <Route
+          path="/subscriptions"
+          element={
+            <RequireAuth>
+              <SubscriptionListPage />
+            </RequireAuth>
+          }
+        />
         <Route path="/compare" element={<ComparisonPage />} />
         <Route path="/services/:id" element={<ServiceDetailPage />} />
         <Route path="/categories/:slug" element={<CategoryPage />} />

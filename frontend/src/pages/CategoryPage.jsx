@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import SidebarLayout from "../layouts/SidebarLayout.jsx";
 import ServiceCard from "../components/ServiceCard.jsx";
-import { searchServices } from "../services/mockApi";
+import { getServices } from "../services/serviceService";
 
 export default function CategoryPage() {
   const { slug } = useParams();
-  const nav = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
@@ -20,8 +19,15 @@ export default function CategoryPage() {
       setLoading(true);
       setError("");
       try {
-        const rows = await searchServices({ q, onlyOtt: false, sort, category: slug });
-        if (!cancelled) setItems(rows);
+        const rows = await getServices({ q, category: slug });
+        if (!cancelled) setItems(rows.map((s)=> ({
+          id: s.id,
+          name: s.name,
+          price: undefined,
+          tags: [],
+          icon: s.logo_url || undefined,
+          nextBilling: undefined,
+        })));
       } catch (e) {
         if (!cancelled) setError("데이터를 불러오는 중 오류가 발생했어요.");
       } finally {
@@ -122,7 +128,7 @@ export default function CategoryPage() {
                   <div className="font-medium">{s.name}</div>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
-                  <div className="text-slate-300">{s.price}</div>
+                  <div className="text-slate-300">{s.price ?? "가격 정보 없음"}</div>
                   {s.nextBilling && (
                     <div className="text-slate-400">다음 결제일: {s.nextBilling}</div>
                   )}

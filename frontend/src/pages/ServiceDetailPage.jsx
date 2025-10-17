@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getServiceDetail } from "../services/mockApi";
-import { addSubscription as addLocal } from "../services/localSubscriptions.js";
+import { getServiceDetail } from "../services/serviceService";
+import { addSubscription } from "../services/subscriptionService";
 import { toggleFavorite } from "../services/localPrefs.js";
 
 export default function ServiceDetailPage() {
@@ -13,8 +13,22 @@ export default function ServiceDetailPage() {
   useEffect(() => {
     let cancelled = false;
     async function run() {
-      const d = await getServiceDetail(id);
-      if (!cancelled) setData(d);
+      const s = await getServiceDetail(id);
+      // backend ServiceDetailSerializer 매핑
+      const mapped = {
+        id: s.id,
+        name: s.name,
+        officialUrl: s.official_link || undefined,
+        plans: Array.isArray(s.plans) ? s.plans.map((p) => ({
+          id: p.id,
+          name: p.plan_name,
+          price: `₩ ${Number(p.price || 0).toLocaleString()}`,
+          cycle: p.billing_cycle === 'year' ? '연' : '월',
+          benefits: (p.benefits || '').split(',').map((v)=> v.trim()).filter(Boolean),
+          freeTrial: false,
+        })) : [],
+      };
+      if (!cancelled) setData(mapped);
     }
     run();
     return () => {
@@ -104,8 +118,16 @@ export default function ServiceDetailPage() {
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
               <button
-                onClick={() => {
-                  addLocal({ name: data.name + " " + selectedPlan, priceValue: Number((data.plans.find(p=>p.name===selectedPlan)?.price || "0").replace(/[^0-9]/g, "")) });
+                onClick={async () => {
+                  const p = data.plans.find((x)=> x.name===selectedPlan);
+                  if (!p?.id) {
+                    // plan id가 없으면 추가 불가
+                    setOpen(false);
+                    return;
+                  }
+                  try {
+                    await addSubscription(p.id);
+                  } catch (_) {}
                   setOpen(false);
                 }}
                 className="px-4 py-2 rounded-2xl bg-cyan-400 text-slate-900 font-semibold hover:opacity-90"

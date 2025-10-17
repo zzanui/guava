@@ -1,6 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getComparison } from "../services/mockApi";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { getComparison as getComparisonApi } from "../services/serviceService";
+import { getComparison as getComparisonMock } from "../services/mockApi";
 
 function formatCurrency(krw) {
   return `₩ ${krw.toLocaleString()}`;
@@ -8,12 +9,14 @@ function formatCurrency(krw) {
 
 export default function ComparisonPage() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sort, setSort] = useState("recommended");
   const [selected, setSelected] = useState({});
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  const ids = useMemo(() => (searchParams.get('ids') || '').split(',').map((v)=> v.trim()).filter(Boolean), [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,8 +24,25 @@ export default function ComparisonPage() {
       setLoading(true);
       setError("");
       try {
-        const data = await getComparison({ sort });
-        if (!cancelled) setRows(data);
+        if (ids.length > 0) {
+          const data = await getComparisonApi(ids);
+          const mapped = (data || []).map((s) => {
+            const prices = Array.isArray(s.plans) ? s.plans.map((p)=> Number(p.price||0)) : [];
+            const minPrice = prices.length ? Math.min(...prices) : 0;
+            const benefits = Array.from(new Set((s.plans||[]).flatMap((p)=> String(p.benefits||"").split(',').map(v=>v.trim()).filter(Boolean))));
+            return {
+              name: s.name,
+              regular: minPrice,
+              discount: null,
+              bundle: null,
+              benefits,
+            };
+          });
+          if (!cancelled) setRows(mapped);
+        } else {
+          const data = await getComparisonMock({ sort });
+          if (!cancelled) setRows(data);
+        }
       } catch (e) {
         if (!cancelled) setError("비교 데이터를 불러오는 중 오류가 발생했어요.");
       } finally {
@@ -33,7 +53,15 @@ export default function ComparisonPage() {
     return () => {
       cancelled = true;
     };
-  }, [sort]);
+  }, [sort, ids]);
+
+  const visibleRows = useMemo(() => {
+    const base = rows.filter((r)=> showSelectedOnly ? Boolean(selected[r.name]) : true);
+    if (sort === 'priceAsc') return [...base].sort((a,b)=> (a.regular||0) - (b.regular||0));
+    if (sort === 'priceDesc') return [...base].sort((a,b)=> (b.regular||0) - (a.regular||0));
+    if (sort === 'nameAsc') return [...base].sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    return base; // recommended: 서버/목업 기본
+  }, [rows, sort, showSelectedOnly, selected]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -123,7 +151,7 @@ export default function ComparisonPage() {
                   <td colSpan={5} className="px-4 py-3 text-red-400">{error}</td>
                 </tr>
               )}
-              {!loading && !error && rows.filter((r)=> showSelectedOnly ? Boolean(selected[r.name]) : true).map((r) => (
+              {!loading && !error && visibleRows.map((r) => (
                 <tr key={r.name} className="border-t border-white/10">
                   <td className="px-4 py-3"><input type="checkbox" className="accent-cyan-400" checked={Boolean(selected[r.name])} onChange={(e)=> setSelected(prev=> ({...prev, [r.name]: e.target.checked}))} /></td>
                   <th scope="row" className="px-4 py-3 font-medium">{r.name}</th>
@@ -146,7 +174,7 @@ export default function ComparisonPage() {
             </tbody>
           </table>
         </div>
-        <div className="mt-3 text-sm text-slate-400">선택 {Object.values(selected).filter(Boolean).length}개 · 표시 {rows.filter((r)=> showSelectedOnly ? Boolean(selected[r.name]) : true).length}개</div>
+        <div className="mt-3 text-sm text-slate-400">선택 {Object.values(selected).filter(Boolean).length}개 · 표시 {visibleRows.length}개</div>
 
         <div className="mt-6">
           <Link to="/" className="text-cyan-300 hover:underline">홈으로 돌아가기 →</Link>

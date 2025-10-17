@@ -2,7 +2,7 @@
 import axios from "axios";
 import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens } from "./tokenStorage";
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // http://127.0.0.1:8000
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000", // env 미설정 시 로컬 기본값
   withCredentials: false, // 추후 쿠키 전략으로 전환 시 true로 변경
 });
 
