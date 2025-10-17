@@ -293,10 +293,7 @@ return () => {
       to={`/services/${s.id}`} // 💡 2. 클릭하면 상세 페이지로 이동하도록 설정
       className="block p-6 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
     >
-      {/* service.name은 데이터에 있으므로 잘 나옵니다. */}
       <h3 className="text-xl font-bold">{s.name}</h3>
-
-      {/* 💡 3. 데이터에 있는 category와 description도 표시해 줍니다. */}
       <p className="mt-2 text-slate-400">{s.category}</p>
       <p className="mt-1 text-sm text-slate-500">{s.description}</p>
     </Link>
