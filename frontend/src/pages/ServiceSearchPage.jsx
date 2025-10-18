@@ -73,12 +73,13 @@ async function run() {
   setLoading(true);
   setError("");
   try {
-    // 💡 1. 이제 백엔드에 '검색어(q)'만 파라미터로 보냅니다.
     const apiParams = {
       q: q,
+      min_price: minPrice ? Number(minPrice) : undefined,
+      max_price: maxPrice ? Number(maxPrice) : undefined,
+      categories: categories
     };
 
-    // 💡 2. 수정한 apiParams 객체로 서비스 '목록'을 요청합니다.
     const rows = await getServices(apiParams);
 
     if (!cancelled) setItems(rows);
@@ -95,8 +96,7 @@ run();
 return () => {
   cancelled = true;
 };
-// 💡 3. 의존성 배열도 'q'만 남겨서, 검색어가 바뀔 때만 API를 호출하도록 합니다.
-}, [q]);
+}, [q, minPrice, maxPrice, categories]);
 
 /*
   useEffect(() => {
@@ -223,7 +223,7 @@ return () => {
             <div className="md:col-span-2">
               <label className="text-sm block mb-1">카테고리</label>
               <div className="flex flex-wrap gap-2">
-                {["ott","music","cloud","productivity","education","gaming","news","devtools"].map((c)=>{
+                {["video","AI","delivery", "shopping", "productivity","music","design","cloud_storage"].map((c)=>{
                   const active = categories.includes(c);
                   return (
                     <button key={c} type="button" onClick={()=> setCategories(prev=> active? prev.filter(x=>x!==c): [...prev, c])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'bg-cyan-400 text-slate-900' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>#{c}</button>
@@ -287,15 +287,15 @@ return () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {items.map((s) => (
-    // 💡 1. 각 'service' 객체에서 우리가 가진 정보만 꺼내 씁니다.
     <Link
       key={s.id}
-      to={`/services/${s.id}`} // 💡 2. 클릭하면 상세 페이지로 이동하도록 설정
+      to={`/services/${s.id}`}
       className="block p-6 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
     >
       <h3 className="text-xl font-bold">{s.name}</h3>
       <p className="mt-2 text-slate-400">{s.category}</p>
       <p className="mt-1 text-sm text-slate-500">{s.description}</p>
+      <p className="mt-1 text-sm text-slate-300">(월 가격 기준) 최소 {s.min_price}원 ~ 최대 {s.max_price}원</p>
     </Link>
   ))}
           </div>
