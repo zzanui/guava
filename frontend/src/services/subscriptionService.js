@@ -7,7 +7,7 @@ export const getSubscriptions = async () => {
 };
 
 export const addSubscription = async (planId) => {
-  return api.post("/my/subscriptions/", { plan_id: planId });
+  return api.post("api/my/subscriptions/", { plan_id: planId });
 };
 
 export const deleteSubscription = async (id) => {

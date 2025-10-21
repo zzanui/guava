@@ -1,9 +1,4 @@
-# subscriptions/admin.py
 from django.contrib import admin
-from .models import Subscription
+from .models import Subscription # 💡 구독 모델 import
 
-
-# @admin.register(Subscription)
-# class SubscriptionAdmin(admin.ModelAdmin):
-#     list_display = ('user', 'plan', 'start_date', 'custom_price')
-#     list_filter = ('user', 'plan__service')
+admin.site.register(Subscription) # 💡 구독 모델 등록

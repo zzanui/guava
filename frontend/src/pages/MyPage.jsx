@@ -1,6 +1,7 @@
 // src/pages/MyPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { listSubscriptions, removeSubscription, monthlyTotal } from "../services/localSubscriptions.js";
+import api from "../services/api";
 
 export default function MyPage() {
   const [subs, setSubs] = useState([]);
@@ -20,6 +21,32 @@ export default function MyPage() {
   }, []);
 
   const total = useMemo(() => monthlyTotal(), [subs]);
+const handleDownload = async (format) => {
+  // format은 'csv' 또는 'pdf'
+  const endpoint = `api/my/subscriptions/export_${format}/`;
+  const filename = `report.${format}`; // 기본 파일명
+
+  try {
+    // 3. axios로 API 호출 (인증 토큰이 자동으로 포함됨)
+    const response = await api.get(endpoint, {
+      responseType: 'blob', // 💡 4. 응답 타입을 'blob' (파일)으로 지정
+    });
+
+    // 5. 다운로드 로직 (브라우저에서 실행)
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename); // 다운로드될 파일명 설정
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link); // 임시 링크 제거
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("파일 다운로드 오류:", error);
+    alert("리포트 파일을 다운로드하는 중 오류가 발생했습니다.");
+  }
+};
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
@@ -88,6 +115,30 @@ export default function MyPage() {
           <li>예시 항목</li>
         </ul>
       </section>
+
+        <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10"> {/* 기존 카드 스타일 가정 */}
+    <h2 className="text-xl font-bold mb-4">구독 서비스 리포트</h2>
+
+    {/* 💡 6. 버튼 2개를 배치할 컨테이너 */}
+    <div className="flex flex-col sm:flex-row gap-4">
+      {/* CSV 다운로드 버튼 */}
+      <button
+        onClick={() => handleDownload('csv')}
+        className="flex-1 px-4 py-3 bg-white/10 text-slate-100 rounded-lg font-semibold hover:bg-white/20 transition duration-200"
+      >
+        CSV로 내보내기
+      </button>
+
+      {/* PDF 다운로드 버튼 */}
+      <button
+        onClick={() => handleDownload('pdf')}
+        className="flex-1 px-4 py-3 bg-cyan-400 text-slate-900 rounded-lg font-semibold hover:bg-cyan-300 transition duration-200"
+      >
+        PDF로 내보내기
+      </button>
+    </div>
+  </div>
+
     </div>
   );
 }

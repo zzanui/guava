@@ -2,6 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import SubscriptionViewSet
+from . import views
 
 router = DefaultRouter()
 # 'subscriptions' 라는 URL 경로에 SubscriptionViewSet을 연결
