@@ -97,7 +97,7 @@ class ComparisonView(APIView):
         responses=ServiceDetailSerializer(many=True)
     )
     def get(self, request):
-        ids_str = request.query_params.get('ids', '')
+        ids_str = request.query_params.get('plan_id', '')
         if not ids_str:
             return Response({"error": "No service IDs provided"}, status=400)
 

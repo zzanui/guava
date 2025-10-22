@@ -1,5 +1,7 @@
 # subscriptions/views.py
 import csv
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated # 로그인 권한
@@ -40,7 +42,20 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         새로운 구독 정보를 생성할 때, user 필드에 현재 로그인한 사용자를
         자동으로 할당해주는 함수입니다.
         """
-        serializer.save(user=self.request.user)
+        plan = serializer.validated_data.get('plan')
+        today = date.today()
+
+        if plan.billing_cycle == 'year':
+            next_payment = today + relativedelta(years=1)
+        else:
+            next_payment = today + relativedelta(months=1)
+
+        # custom_memo는 일단 빈 값으로(추후 마이 페이지에서 수정가능)
+        serializer.save(
+            user=self.request.user,
+            start_date=today,
+            next_payment_date=next_payment,
+            custom_memo="")
 
     def list(self, request, *args, **kwargs):
         if getattr(self, 'swagger_fake_view', False):
