@@ -28,6 +28,8 @@ export default function ServiceSearchPage() {
   const [freeTrial, setFreeTrial] = useState(false);
   const [categories, setCategories] = useState([]);
   const [opCategory, setOpCategory] = useState("or");
+  const [page, setPage] = useState(1);
+  const pageSize = 9;
 
   useEffect(() => {
     // URL -> 상태 초기화 (첫 마운트 시)
@@ -47,6 +49,8 @@ export default function ServiceSearchPage() {
     if (benefitAll.length) setSelectedBenefits(benefitAll);
     const cats = query.getAll("cat");
     if (cats.length) setCategories(cats);
+    const p = query.get("page");
+    if (p && !Number.isNaN(Number(p))) setPage(Math.max(1, Number(p)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -62,10 +66,11 @@ export default function ServiceSearchPage() {
     if (opCategory && opCategory !== "or") params.set("opCat", opCategory);
     selectedBenefits.forEach((b) => params.append("benefit", b));
     categories.forEach((c) => params.append("cat", c));
+    if (page > 1) params.set("page", String(page));
     const prev = searchParams.toString();
     const next = params.toString();
     if (prev !== next) setSearchParams(params, { replace: true });
-  }, [q, sort, onlyOtt, minPrice, maxPrice, selectedBenefits, freeTrial, categories, opCategory, searchParams, setSearchParams]);
+  }, [q, sort, onlyOtt, minPrice, maxPrice, selectedBenefits, freeTrial, categories, opCategory, page, searchParams, setSearchParams]);
 
 useEffect(() => {
 let cancelled = false;
@@ -133,6 +138,12 @@ return () => {
     };
   }, [q, onlyOtt, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits, freeTrial]);
 */
+
+  // 필터 변경 시 페이지 리셋
+  useEffect(() => {
+    setPage(1);
+  }, [q, onlyOtt, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits, freeTrial]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
@@ -183,7 +194,7 @@ return () => {
               if (next) params.set("q", next); else params.delete("q");
               setSearchParams(params, { replace: true });
             }}
-            className="flex-1 flex items-center gap-3"
+            className="flex-1 flex items-center gap-3 flex-nowrap"
             role="search"
             aria-label="서비스 검색"
           >
@@ -191,12 +202,12 @@ return () => {
               name="q"
               defaultValue={q}
               placeholder="서비스 이름으로 검색 (예: 넷플릭스, 디즈니+)"
-              className="w-full rounded-2xl bg-slate-900 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-400"
+              className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-cyan-400"
               aria-label="검색어 입력"
             />
             <button
               type="submit"
-              className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring whitespace-nowrap"
+              className="h-10 whitespace-nowrap rounded-2xl px-4 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring"
               aria-label="검색 실행"
             >
               검색
@@ -279,7 +290,13 @@ return () => {
           <div className="sr-only" aria-live="polite" aria-atomic="true">
             {loading ? "로딩 중" : error ? `오류: ${error}` : `${items.length}건의 결과`}
           </div>
-          {loading && <div className="text-slate-400" role="status" aria-live="polite">로딩 중…</div>}
+          {loading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" role="status" aria-live="polite">
+              {Array.from({ length: pageSize }).map((_, i) => (
+                <div key={i} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10 animate-pulse h-32" />
+              ))}
+            </div>
+          )}
           {error && <div className="text-red-400" role="alert">{error}</div>}
           {!loading && !error && items.length === 0 && (
             <div className="text-slate-400">검색 결과가 없습니다.</div>
@@ -298,6 +315,28 @@ return () => {
       <p className="mt-1 text-sm text-slate-300">(월 가격 기준) 최소 {s.min_price}원 ~ 최대 {s.max_price}원</p>
     </Link>
   ))}
+            {items.slice((page-1)*pageSize, page*pageSize).map((s) => (
+              <ServiceCard key={s.id} {...s} />
+            ))}
+          </div>
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 disabled:opacity-50"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              이전
+            </button>
+            <div className="text-sm text-slate-400">
+              페이지 {page} / {Math.max(1, Math.ceil(items.length / pageSize))}
+            </div>
+            <button
+              className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 disabled:opacity-50"
+              onClick={() => setPage((p) => (p < Math.ceil(items.length / pageSize) ? p + 1 : p))}
+              disabled={page >= Math.ceil(items.length / pageSize)}
+            >
+              다음
+            </button>
           </div>
         </div>
       </div>

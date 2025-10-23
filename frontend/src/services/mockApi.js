@@ -25,6 +25,25 @@ const COMPARISON = [
 ];
 
 const DJANGO_BASE_URL = 'http://localhost:8000';
+// --- 가격 이력 / 프로모션 / 번들 목업 ---
+const PRICE_HISTORY = [
+  { price_id: 1, plan_id: 102, price: 13500, start_date: "2025-01-01", end_date: "2025-12-31", discount_reason: null, is_bundle: false },
+  { price_id: 2, plan_id: 201, price: 9900, start_date: "2025-08-01", end_date: null, discount_reason: "가을 프로모션", is_bundle: false },
+];
+
+const PROMOTIONS = [
+  { promo_id: 1, name: "통신사 제휴 10%", description: "특정 통신사 고객 10% 할인", discount_type: "percent", discount_value: 10, start_date: "2025-10-01", end_date: "2025-12-31", target_type: "service", target_id: 1, telecom_id: 1, card_id: null },
+  { promo_id: 2, name: "카드 청구할인 2,000원", description: "제휴 카드 청구할인", discount_type: "fixed", discount_value: 2000, start_date: "2025-10-01", end_date: "2025-10-31", target_type: "plan", target_id: 102, telecom_id: null, card_id: 3 },
+  { promo_id: 3, name: "가을 전고객 5%", description: "모든 사용자 5% 할인", discount_type: "percent", discount_value: 5, start_date: "2025-09-15", end_date: "2025-11-15", target_type: "service", target_id: 2, telecom_id: null, card_id: null },
+];
+
+const BUNDLES = [
+  { bundle_id: 1, name: "넷플+뮤직", description: "OTT + 음악 결합", total_price: 19900, start_date: "2025-10-01", end_date: null },
+];
+const BUNDLE_PLANS = [
+  { bundle_plan_id: 1, bundle_id: 1, plan_id: 102 },
+  { bundle_plan_id: 2, bundle_id: 1, plan_id: 201 },
+];
 
 function delay(ms = 150) {
   return new Promise((res) => setTimeout(res, ms));
@@ -155,6 +174,47 @@ export async function searchServices(
     freeTrial = false
     } = {}
 ) {
+export async function getPriceHistory(planId) {
+  await delay(100);
+  return PRICE_HISTORY.filter((p) => String(p.plan_id) === String(planId));
+}
+
+export async function listPromotions({ targetType, targetId, telecomId, cardIds = [], activeOnly = false } = {}) {
+  await delay(100);
+  let rows = PROMOTIONS;
+  if (targetType && targetType !== 'all') rows = rows.filter((p) => p.target_type === targetType);
+  if (targetId != null && targetId !== '') rows = rows.filter((p) => String(p.target_id) === String(targetId));
+
+  if (telecomId) {
+    rows = rows.filter((p) => p.telecom_id == null || String(p.telecom_id) === String(telecomId));
+  }
+  if (Array.isArray(cardIds) && cardIds.length > 0) {
+    const set = new Set(cardIds.map(String));
+    rows = rows.filter((p) => p.card_id == null || set.has(String(p.card_id)));
+  }
+
+  if (activeOnly) {
+    const today = new Date();
+    rows = rows.filter((p) => {
+      const start = p.start_date ? new Date(p.start_date) : null;
+      const end = p.end_date ? new Date(p.end_date) : null;
+      const afterStart = !start || start <= today;
+      const beforeEnd = !end || today <= end;
+      return afterStart && beforeEnd;
+    });
+  }
+
+  return rows;
+}
+
+export async function listBundles() {
+  await delay(100);
+  return BUNDLES.map((b) => ({
+    ...b,
+    plans: BUNDLE_PLANS.filter((x) => x.bundle_id === b.bundle_id).map((x) => x.plan_id),
+  }));
+}
+
 
   await delay(120);
   let rows = SERVICES;

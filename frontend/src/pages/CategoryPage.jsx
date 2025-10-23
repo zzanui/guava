@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import SidebarLayout from "../layouts/SidebarLayout.jsx";
 import ServiceCard from "../components/ServiceCard.jsx";
-import { searchServices } from "../services/mockApi";
+import { getServices } from "../services/serviceService";
 
 export default function CategoryPage() {
   const { slug } = useParams();
-  const nav = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
@@ -20,8 +19,15 @@ export default function CategoryPage() {
       setLoading(true);
       setError("");
       try {
-        const rows = await searchServices({ q, onlyOtt: false, sort, category: slug });
-        if (!cancelled) setItems(rows);
+        const rows = await getServices({ q, category: slug });
+        if (!cancelled) setItems(rows.map((s)=> ({
+          id: s.id,
+          name: s.name,
+          price: undefined,
+          tags: [],
+          icon: s.logo_url || undefined,
+          nextBilling: undefined,
+        })));
       } catch (e) {
         if (!cancelled) setError("데이터를 불러오는 중 오류가 발생했어요.");
       } finally {
@@ -86,7 +92,7 @@ export default function CategoryPage() {
           const input = e.currentTarget.querySelector('input[name="q"]');
           setQ(input?.value?.trim() || "");
         }}
-        className="mt-6 flex items-center gap-3"
+        className="mt-6 flex items-center gap-3 flex-nowrap"
         role="search"
         aria-label="카테고리 내 검색"
       >
@@ -94,10 +100,10 @@ export default function CategoryPage() {
           name="q"
           defaultValue={q}
           placeholder="이 카테고리에서 검색"
-          className="w-full rounded-2xl bg-slate-900 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-400"
+          className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-cyan-400"
           aria-label="검색어 입력"
         />
-        <button type="submit" className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition">검색</button>
+        <button type="submit" className="h-10 whitespace-nowrap rounded-2xl px-4 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition">검색</button>
       </form>
 
       <div className="mt-8" aria-live="polite" aria-atomic="true">
@@ -122,7 +128,7 @@ export default function CategoryPage() {
                   <div className="font-medium">{s.name}</div>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
-                  <div className="text-slate-300">{s.price}</div>
+                  <div className="text-slate-300">{s.price ?? "가격 정보 없음"}</div>
                   {s.nextBilling && (
                     <div className="text-slate-400">다음 결제일: {s.nextBilling}</div>
                   )}
