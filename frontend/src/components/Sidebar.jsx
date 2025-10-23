@@ -1,14 +1,16 @@
 import { NavLink } from "react-router-dom";
 
 const CATEGORIES = [
-  { slug: "ott", name: "OTT" },
+  { slug: "video", name: "OTT" },
   { slug: "music", name: "음악" },
-  { slug: "cloud", name: "클라우드" },
+  { slug: "books", name: "도서" },
+  { slug: "shopping", name: "쇼핑" },
+  { slug: "delivery", name: "배달서비스" },
+  { slug: "ai", name: "AI" },
+  { slug: "cloud_storage", name: "클라우드" },
   { slug: "productivity", name: "생산성" },
-  { slug: "education", name: "교육" },
-  { slug: "gaming", name: "게임" },
-  { slug: "news", name: "뉴스/매거진" },
-  { slug: "devtools", name: "개발툴" },
+  { slug: "design", name: "디자인" },
+
 ];
 
 export default function Sidebar() {
@@ -29,6 +31,29 @@ export default function Sidebar() {
             {c.name}
           </NavLink>
         ))}
+        <hr className="my-2 border-white/10" />
+        <NavLink
+          to="/bundles"
+          className={({ isActive }) =>
+            `block rounded-xl px-3 py-2 transition focus-ring ${
+              isActive ? "bg-white/10 text-slate-100" : "hover:bg-white/5 text-slate-300"
+            }`
+          }
+          aria-label="결합상품 보기"
+        >
+          결합상품
+        </NavLink>
+        <NavLink
+          to="/promotions"
+          className={({ isActive }) =>
+            `block rounded-xl px-3 py-2 transition focus-ring ${
+              isActive ? "bg-white/10 text-slate-100" : "hover:bg-white/5 text-slate-300"
+            }`
+          }
+          aria-label="프로모션 보기"
+        >
+          프로모션
+        </NavLink>
       </nav>
     </aside>
   );

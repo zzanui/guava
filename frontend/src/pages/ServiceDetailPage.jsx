@@ -2,13 +2,18 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getServiceDetail } from "../services/serviceService";
 import { addSubscription } from "../services/subscriptionService";
+import { addSubscription as addLocalSubscription } from "../services/localSubscriptions.js";
 import { toggleFavorite } from "../services/localPrefs.js";
+import { getPriceHistory, listPromotions, listBundles } from "../services/mockApi";
 
 export default function ServiceDetailPage() {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("");
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [promos, setPromos] = useState([]);
+  const [bundles, setBundles] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,6 +34,19 @@ export default function ServiceDetailPage() {
         })) : [],
       };
       if (!cancelled) setData(mapped);
+      // 읽기 전용: 가격이력/프로모션/번들(목업)
+      try {
+        const [ph, pm, bd] = await Promise.all([
+          getPriceHistory(id),
+          listPromotions({ targetType: "service", targetId: id }),
+          listBundles(),
+        ]);
+        if (!cancelled) {
+          setPriceHistory(ph);
+          setPromos(pm);
+          setBundles(bd);
+        }
+      } catch (_) {}
     }
     run();
     return () => {
@@ -108,6 +126,54 @@ export default function ServiceDetailPage() {
             <a href={data.officialUrl} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">공식 페이지로 이동 ↗</a>
           </div>
         )}
+        {/* 읽기 전용: 가격이력/프로모션/번들 */}
+        <div className="mt-8 grid md:grid-cols-3 gap-6">
+          <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
+            <h2 className="font-semibold">가격 이력</h2>
+            {priceHistory.length === 0 ? (
+              <div className="text-slate-400 mt-2">기록이 없습니다.</div>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {priceHistory.map((h) => (
+                  <li key={h.price_id} className="text-sm text-slate-300 flex justify-between">
+                    <span>{new Date(h.start_date).toLocaleDateString()} ~ {h.end_date ? new Date(h.end_date).toLocaleDateString() : '현재'}</span>
+                    <span>₩ {Number(h.price||0).toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
+            <h2 className="font-semibold">프로모션</h2>
+            {promos.length === 0 ? (
+              <div className="text-slate-400 mt-2">진행 중인 프로모션이 없습니다.</div>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {promos.map((p) => (
+                  <li key={p.promo_id} className="text-sm text-slate-300 flex justify-between">
+                    <span className="truncate mr-2">{p.name}</span>
+                    <span className="text-slate-400">{p.discount_type === 'percent' ? `${p.discount_value}%` : `₩ ${Number(p.discount_value||0).toLocaleString()}`}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
+            <h2 className="font-semibold">결합상품</h2>
+            {bundles.length === 0 ? (
+              <div className="text-slate-400 mt-2">결합상품이 없습니다.</div>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {bundles.map((b) => (
+                  <li key={b.bundle_id} className="text-sm text-slate-300 flex justify-between">
+                    <span className="truncate mr-2">{b.name}</span>
+                    <span>₩ {Number(b.total_price||0).toLocaleString()}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
       {open && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
@@ -127,6 +193,9 @@ export default function ServiceDetailPage() {
                   }
                   try {
                     await addSubscription(p.id);
+                    // 서버 추가 성공 시, 마이페이지(로컬 저장 기반)도 즉시 반영되도록 동기 저장
+                    const priceValue = Number(String(p.price || "").replace(/[^0-9.]/g, "")) || 0;
+                    addLocalSubscription({ name: `${data.name} ${p.name}`, priceValue });
                   } catch (_) {}
                   setOpen(false);
                 }}

@@ -12,8 +12,30 @@ export const getServices = async ({ q, category, minPrice, maxPrice } = {}) => {
 };
 
 export const getServiceDetail = async (serviceId) => {
-  const response = await api.get(`/api/services/${serviceId}/`);
-  return response.data;
+  try {
+    const response = await api.get(`/api/services/${serviceId}/`);
+    return response.data;
+  } catch (error) {
+    // 백엔드 상세 시리얼라이저 오류(예: 불일치 필드)로 500 발생 시
+    // 리스트 + 플랜 엔드포인트를 조합하여 상세 데이터를 구성한다.
+    const [servicesResp, plansResp] = await Promise.all([
+      api.get('/api/services/'),
+      api.get(`/api/services/${serviceId}/plans/`),
+    ]);
+
+    const services = Array.isArray(servicesResp?.data) ? servicesResp.data : [];
+    const service = services.find((s) => String(s?.id) === String(serviceId)) || null;
+    const plans = Array.isArray(plansResp?.data) ? plansResp.data : [];
+
+    return {
+      id: service?.id ?? (Number.isNaN(Number(serviceId)) ? serviceId : Number(serviceId)),
+      name: service?.name ?? "",
+      category: service?.category ?? null,
+      logo_url: service?.logo_url ?? null,
+      official_link: service?.official_link ?? null,
+      plans,
+    };
+  }
 };
 
 export const getComparison = async (ids = []) => {

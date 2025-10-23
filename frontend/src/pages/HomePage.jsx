@@ -25,39 +25,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Header */}
-      <header className="border-b border-white/10 backdrop-blur sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="Guava 홈으로 이동">
-            <img src="/guava-logo.png" alt="GUAVA 로고" className="h-8 w-8 rounded" />
-            <span className="font-semibold text-lg">구아바</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link className="hover:text-cyan-300 focus-ring" to="/compare">가격비교</Link>
-            <Link className="hover:text-cyan-300 focus-ring" to="/subscriptions">내 구독</Link>
-            <Link className="hover:text-cyan-300 focus-ring" to="/blog">공지사항</Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            {signedIn ? (
-              <>
-                <Link to="/mypage" className="rounded-2xl px-4 py-2 bg-white/10 hover:bg-white/15 transition shadow-lg focus-ring" aria-label="마이페이지로 이동">
-                  마이페이지
-                </Link>
-                <button onClick={handleLogout} className="px-4 py-2 rounded-2xl hover:bg-white/10 transition shadow-lg focus-ring" aria-label="로그아웃">
-                  로그아웃
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="px-4 py-2 rounded-2xl hover:bg-white/10 transition shadow-lg focus-ring" aria-label="로그인 페이지로 이동">로그인</Link>
-                <Link to="/register" className="px-4 py-2 rounded-2xl bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring" aria-label="무료로 시작하기">
-                  회원가입
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* 기존 헤더 영역 제거: 전역 Header에서 렌더링됨 */}
 
       {/* Hero */}
       <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
@@ -83,17 +51,17 @@ export default function HomePage() {
               )}
             </div>
 
-            <form onSubmit={handleSearch} className="mt-8 flex items-center gap-3">
+            <form onSubmit={handleSearch} className="mt-8 flex items-center gap-3 flex-nowrap">
               <input
                 value={q}
                 onChange={(e)=>setQ(e.target.value)}
                 placeholder="서비스 이름으로 검색 (예: 넷플릭스, 디즈니+)"
-                className="w-full md:w-2/3 rounded-2xl bg-slate-900 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-400"
+                className="w-full md:w-2/3 h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-cyan-400"
                 aria-label="구독 서비스 검색"
               />
               <button
                 type="submit"
-                className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring"
+                className="h-10 whitespace-nowrap rounded-2xl px-4 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring"
                 aria-label="검색 실행"
               >
                 검색

@@ -157,7 +157,7 @@ export default function ServiceSearchPage() {
               if (next) params.set("q", next); else params.delete("q");
               setSearchParams(params, { replace: true });
             }}
-            className="flex-1 flex items-center gap-3"
+            className="flex-1 flex items-center gap-3 flex-nowrap"
             role="search"
             aria-label="서비스 검색"
           >
@@ -165,12 +165,12 @@ export default function ServiceSearchPage() {
               name="q"
               defaultValue={q}
               placeholder="서비스 이름으로 검색 (예: 넷플릭스, 디즈니+)"
-              className="w-full rounded-2xl bg-slate-900 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-400"
+              className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-cyan-400"
               aria-label="검색어 입력"
             />
             <button
               type="submit"
-              className="rounded-2xl px-5 py-3 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring whitespace-nowrap"
+              className="h-10 whitespace-nowrap rounded-2xl px-4 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring"
               aria-label="검색 실행"
             >
               검색
