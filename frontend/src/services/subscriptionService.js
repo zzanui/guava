@@ -22,18 +22,7 @@ export const addSubscription = async (
     priceOverride,
   } = {}
 ) => {
-  const now = new Date();
-  const start = startDate ? new Date(startDate) : now;
-  const next = nextPaymentDate
-    ? new Date(nextPaymentDate)
-    : new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
-
-  const payload = {
-    plan: planId,
-    start_date: toISODate(start),
-    next_payment_date: toISODate(next),
-    custom_memo: memo,
-  };
+  const payload = { plan: planId };
   if (typeof priceOverride === "number") payload.price_override = priceOverride;
   return api.post(`/api/my/subscriptions/`, payload);
 };
