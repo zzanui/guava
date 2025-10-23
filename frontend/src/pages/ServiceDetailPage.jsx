@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+// 💡 1. Mock API 대신 실제 API 서비스 함수를 import 합니다.
+import { getServiceDetail } from "../services/serviceService";
+import DetailServiceCard from "../components/ServiceCard"; // 요금제 표시에 필요하다면 사용
+import { addSubscription } from "../services/subscriptionService";
 import { getServiceDetail } from "../services/serviceService";
 import { addSubscription } from "../services/subscriptionService";
 import { addSubscription as addLocalSubscription } from "../services/localSubscriptions.js";
@@ -7,7 +11,12 @@ import { toggleFavorite } from "../services/localPrefs.js";
 import { getPriceHistory, listPromotions, listBundles } from "../services/mockApi";
 
 export default function ServiceDetailPage() {
+  // 💡 2. URL의 동적인 ID 값을 가져옵니다.
   const { id } = useParams();
+
+  const [service, setService] = useState(null); // 상세 정보 (요금제 포함)
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("");
@@ -16,8 +25,22 @@ export default function ServiceDetailPage() {
   const [bundles, setBundles] = useState([]);
 
   useEffect(() => {
-    let cancelled = false;
+    // URL의 id가 바뀔 때마다 실행됩니다.
+    if (!id) return; // id가 없으면 실행하지 않음
+
     async function run() {
+      setLoading(true);
+      setError("");
+      try {
+        // 💡 3. URL에서 가져온 id로 실제 API를 호출합니다.
+        const data = await getServiceDetail(id);
+        setService(data);
+      } catch (e) {
+        console.error("상세 정보 로딩 실패:", e);
+        setError("서비스 정보를 불러오는 데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
       const s = await getServiceDetail(id);
       // backend ServiceDetailSerializer 매핑
       const mapped = {
@@ -49,20 +72,29 @@ export default function ServiceDetailPage() {
       } catch (_) {}
     }
     run();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+  }, [id]); // 💡 4. 의존성 배열에 id를 꼭 넣어줍니다.
 
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <div className="mx-auto max-w-7xl px-4 py-10">로딩 중…</div>
-      </div>
-    );
-  }
+  if (loading) return <div>로딩 중...</div>;
+  if (error) return <div>{error}</div>;
+  if (!service) return <div>서비스 정보가 없습니다.</div>;
+  const handleAddSubscription = async (planId) => {
+    try {
+      // API 호출 (인증 토큰은 api.js가 자동으로 처리)
+      await addSubscription(planId);
 
+      // 3. 성공 피드백
+      alert("구독이 성공적으로 추가되었습니다! '마이페이지'에서 확인하세요.");
+
+    } catch (error) {
+      console.error("구독 추가 실패:", error);
+      // 401 오류(로그인 안 됨) 등 다양한 에러 처리
+      alert("구독 추가에 실패했습니다. 로그인 상태를 확인해주세요.");
+    }
+  };
   return (
+    <div>
+      <h1>{service.name}</h1>
+      <p>{service.description}</p>
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
         <div className="flex items-center justify-between">
@@ -70,44 +102,22 @@ export default function ServiceDetailPage() {
           <button onClick={()=> toggleFavorite(data.name)} className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15">즐겨찾기</button>
         </div>
 
-        <div className="mt-6 grid md:grid-cols-2 gap-6">
-          <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
-            <h2 className="font-semibold">요금제</h2>
-            <ul className="mt-3 space-y-2">
-              {data.plans.map((p) => (
-                <li key={p.name} className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{p.cycle || "월"} 결제 {p.freeTrial ? "· 무료체험 제공" : ""}</div>
-                  </div>
-                  <div className="text-slate-300">{p.price}</div>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4">
-              <label className="text-sm block mb-1" htmlFor="plan">내 구독에 추가할 요금제</label>
-              <select
-                id="plan"
-                className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2"
-                value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value)}
-              >
-                <option value="">선택하기</option>
-                {data.plans.map((p) => (
-                  <option key={p.name} value={p.name}>{p.name} — {p.price}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setOpen(true)}
-                disabled={!selectedPlan}
-                className="mt-3 rounded-2xl px-4 py-2 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 disabled:opacity-50 transition"
-                aria-label="내 구독에 추가"
-              >
-                내 구독에 추가
-              </button>
-            </div>
-          </div>
+    <div>
+    {service.plans && service.plans.map((plan) => {
+        const cycleText = plan.billing_cycle === 'month' ? '월' : '연';
+        const formattedPrice = `₩ ${parseInt(plan.price).toLocaleString('ko-KR')}`;
 
+        return (
+          <DetailServiceCard
+            key={plan.id}
+            name={plan.plan_name}
+            price={formattedPrice} // 가공된 가격 문자열
+            benefits={plan.benefits}
+            billing_cycle={cycleText} // '월' 또는 '연'
+            onAdd={() => handleAddSubscription(plan.id)}
+          />
+        );
+    })}
           <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
             <h2 className="font-semibold">주요 혜택</h2>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -208,7 +218,6 @@ export default function ServiceDetailPage() {
         </div>
       )}
     </div>
+  </div>
   );
 }
-
-

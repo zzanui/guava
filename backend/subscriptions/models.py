@@ -3,7 +3,8 @@ from django.conf import settings
 from django.db import models
 from services.models import Plan # services 앱의 Plan 모델을 가져옴
 
-#사용자별 구독서비스 사용목록
+
+# 사용자별 구독서비스 사용목록
 class Subscription(models.Model):
     id = models.BigAutoField(db_column="subscription_id", help_text="Subscription ID", primary_key=True)
     user = models.ForeignKey(to=settings.AUTH_USER_MODEL, db_column="user_id", related_name="subscriptions", on_delete=models.CASCADE)

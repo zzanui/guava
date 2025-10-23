@@ -1,4 +1,6 @@
-# services/views.py
+from django.db.models import Min, Max, Case, When, F, Value, DecimalField
+from django.db.models.functions import Coalesce
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
@@ -18,10 +20,23 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
     모든 구독 서비스의 목록 및 상세 정보를 조회합니다.
     (권한: 누구나 조회 가능)
     """
-    queryset = Service.objects.all()
     serializer_class = ServiceSerializer
     filterset_class = ServiceFilter
     permission_classes = [AllowAny]
+    monthly_price_expression = Case(
+        When(
+            plans__billing_cycle='year',
+            then=F('plans__price') / 12),
+        default=F('plans__price'),
+        output_field=DecimalField(max_digits=10, decimal_places=2)
+    )
+
+    queryset = Service.objects.all().annotate(
+        min_price=Coalesce(Min(monthly_price_expression),
+                           Value(0, output_field=DecimalField(max_digits=10, decimal_places=2))),
+        max_price=Coalesce(Max(monthly_price_expression),
+                           Value(0, output_field=DecimalField(max_digits=10, decimal_places=2)))
+    )
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -82,7 +97,7 @@ class ComparisonView(APIView):
         responses=ServiceDetailSerializer(many=True)
     )
     def get(self, request):
-        ids_str = request.query_params.get('ids', '')
+        ids_str = request.query_params.get('plan_id', '')
         if not ids_str:
             return Response({"error": "No service IDs provided"}, status=400)
 

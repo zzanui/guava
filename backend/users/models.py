@@ -19,6 +19,16 @@ class UserManager(BaseUserManager):
     def create_superuser(self, username, password=None, **extra_fields):
         if not password:
             raise ValueError("슈퍼유저는 비밀번호가 필요합니다.")
+            # 💡 2. 슈퍼유저는 is_staff와 is_superuser가 True여야 합니다.
+
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
         return self.create_user(username, password, **extra_fields)
 #사용자
 class User(AbstractBaseUser):
@@ -32,12 +42,13 @@ class User(AbstractBaseUser):
     name = models.CharField(db_column="name", max_length=50)                       # 사용자 이름
     display_name = models.CharField(db_column="display_name", max_length=50)               # 닉네임
     created_at = models.DateTimeField(db_column="created_at", auto_now_add=True)         # 생성일
-
+    is_staff = models.BooleanField(db_column="is_staff", default=False)
+    is_superuser = models.BooleanField(db_column="is_superuser", default=False)
     objects = UserManager()
 
     # 로그인 식별자 변경: username
     USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = []   # createsuperuser 시 추가로 물을 필드지만 관리자계정 필드는 별도로 관리할 예정이므로 필요없음
+    REQUIRED_FIELDS = ['email']   # createsuperuser 시 추가로 물을 필드지만 관리자계정 필드는 별도로 관리할 예정이므로 필요없음
 
     class Meta:
         managed = False      # 테이블 건드리지 않음
@@ -60,5 +71,12 @@ class User(AbstractBaseUser):
     def id(self):        # read-only alias
         return self.user_id
 
+    def has_perm(self, perm, obj=None):
+        "특정 권한이 있습니까?"
+        # 가장 간단한 구현: 슈퍼유저는 모든 권한을 가짐
+        return self.is_superuser
 
-
+    def has_module_perms(self, app_label):
+        "특정 앱의 모델을 볼 권한이 있습니까?"
+        # 가장 간단한 구현: 슈퍼유저는 모든 앱을 볼 수 있음
+        return self.is_superuser

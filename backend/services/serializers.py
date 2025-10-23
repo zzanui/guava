@@ -4,6 +4,9 @@ from .models import Service, Plan, Card, Telecom
 
 
 class ServiceSerializer(serializers.ModelSerializer):
+    min_price = serializers.DecimalField(max_digits=10, decimal_places=0, read_only=True)
+    max_price = serializers.DecimalField(max_digits=10, decimal_places=0, read_only=True)
+
     class Meta:
         model = Service
         fields = '__all__'
@@ -22,7 +25,8 @@ class ServiceDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Service
-        fields = ['id', 'name', 'category', 'logo_url', 'official_link', 'plans']
+        # fields = ['id', 'name', 'category', 'official_link', 'plans']
+        fields = '__all__'
 
 
 class CardSerializer(serializers.ModelSerializer):

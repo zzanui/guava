@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, Link, useSearchParams } from "react-router-dom";
 import ServiceCard from "../components/ServiceCard.jsx";
-import { searchServices } from "../services/mockApi";
-
+// import { searchServices } from "../services/mockApi";
+import { getServices } from "../services/serviceService.js";
 // 목업 데이터는 mockApi에서 제공
 
 function useQuery() {
@@ -72,26 +72,62 @@ export default function ServiceSearchPage() {
     if (prev !== next) setSearchParams(params, { replace: true });
   }, [q, sort, onlyOtt, minPrice, maxPrice, selectedBenefits, freeTrial, categories, opCategory, page, searchParams, setSearchParams]);
 
+useEffect(() => {
+let cancelled = false;
+async function run() {
+  setLoading(true);
+  setError("");
+  try {
+    const apiParams = {
+      q: q,
+      min_price: minPrice ? Number(minPrice) : undefined,
+      max_price: maxPrice ? Number(maxPrice) : undefined,
+      categories: categories
+    };
+
+    const rows = await getServices(apiParams);
+
+    if (!cancelled) setItems(rows);
+  } catch (e) {
+    console.error("API 호출 중 오류 발생:", e); // 디버깅을 위해 콘솔 로그 추가
+    if (!cancelled) setError("서비스 목록을 불러오는 중 오류가 발생했어요.");
+  } finally {
+    if (!cancelled) setLoading(false);
+  }
+}
+
+run();
+
+return () => {
+  cancelled = true;
+};
+}, [q, minPrice, maxPrice, categories]);
+
+/*
   useEffect(() => {
     let cancelled = false;
     async function run() {
       setLoading(true);
       setError("");
       try {
-        const rows = await searchServices({
-          q,
-          onlyOtt,
-          sort,
-          categories,
-          opCategory,
-          minPrice: minPrice ? Number(minPrice) : undefined,
-          maxPrice: maxPrice ? Number(maxPrice) : undefined,
-          benefits: selectedBenefits,
-          freeTrial,
+        const rows = await getServices({
+        q,
+        onlyOtt, // 이 필터도 filters.py에 추가해야 합니다.
+        sort,
+        categories,
+        opCategory,
+        min_price: minPrice ? Number(minPrice) : undefined, // minPrice -> min_price
+        max_price: maxPrice ? Number(maxPrice) : undefined, // maxPrice -> max_price
+        benefits: selectedBenefits,
+        freeTrial,
         });
         if (!cancelled) setItems(rows);
       } catch (e) {
-        if (!cancelled) setError("검색 중 오류가 발생했어요.");
+        if (!cancelled)
+        {
+            setError("검색 중 오류가 발생했어요.");
+            console.error("API 호출 중 오류 발생:", e);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -101,6 +137,7 @@ export default function ServiceSearchPage() {
       cancelled = true;
     };
   }, [q, onlyOtt, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits, freeTrial]);
+*/
 
   // 필터 변경 시 페이지 리셋
   useEffect(() => {
@@ -197,7 +234,7 @@ export default function ServiceSearchPage() {
             <div className="md:col-span-2">
               <label className="text-sm block mb-1">카테고리</label>
               <div className="flex flex-wrap gap-2">
-                {["ott","music","cloud","productivity","education","gaming","news","devtools"].map((c)=>{
+                {["video","AI","delivery", "shopping", "productivity","music","design","cloud_storage"].map((c)=>{
                   const active = categories.includes(c);
                   return (
                     <button key={c} type="button" onClick={()=> setCategories(prev=> active? prev.filter(x=>x!==c): [...prev, c])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'bg-cyan-400 text-slate-900' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>#{c}</button>
@@ -266,6 +303,18 @@ export default function ServiceSearchPage() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {items.map((s) => (
+    <Link
+      key={s.id}
+      to={`/services/${s.id}`}
+      className="block p-6 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
+    >
+      <h3 className="text-xl font-bold">{s.name}</h3>
+      <p className="mt-2 text-slate-400">{s.category}</p>
+      <p className="mt-1 text-sm text-slate-500">{s.description}</p>
+      <p className="mt-1 text-sm text-slate-300">(월 가격 기준) 최소 {s.min_price}원 ~ 최대 {s.max_price}원</p>
+    </Link>
+  ))}
             {items.slice((page-1)*pageSize, page*pageSize).map((s) => (
               <ServiceCard key={s.id} {...s} />
             ))}
