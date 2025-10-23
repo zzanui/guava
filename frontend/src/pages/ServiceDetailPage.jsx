@@ -4,8 +4,6 @@ import { useParams } from "react-router-dom";
 import { getServiceDetail } from "../services/serviceService";
 import DetailServiceCard from "../components/ServiceCard"; // 요금제 표시에 필요하다면 사용
 import { addSubscription } from "../services/subscriptionService";
-import { getServiceDetail } from "../services/serviceService";
-import { addSubscription } from "../services/subscriptionService";
 import { addSubscription as addLocalSubscription } from "../services/localSubscriptions.js";
 import { toggleFavorite } from "../services/localPrefs.js";
 import { getPriceHistory, listPromotions, listBundles } from "../services/mockApi";
@@ -29,12 +27,13 @@ export default function ServiceDetailPage() {
     if (!id) return; // id가 없으면 실행하지 않음
 
     async function run() {
+      let cancelled = false;
       setLoading(true);
       setError("");
       try {
         // 💡 3. URL에서 가져온 id로 실제 API를 호출합니다.
         const data = await getServiceDetail(id);
-        setService(data);
+        if (!cancelled) setService(data);
       } catch (e) {
         console.error("상세 정보 로딩 실패:", e);
         setError("서비스 정보를 불러오는 데 실패했습니다.");
@@ -72,6 +71,7 @@ export default function ServiceDetailPage() {
       } catch (_) {}
     }
     run();
+    return () => { /* 취소 플래그 */ };
   }, [id]); // 💡 4. 의존성 배열에 id를 꼭 넣어줍니다.
 
   if (loading) return <div>로딩 중...</div>;

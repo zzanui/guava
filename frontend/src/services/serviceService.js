@@ -1,39 +1,12 @@
 // src/services/serviceService.js
 import api from "./api";
 
-export const getServices = async (params) => {
-  try {
-    const response = await api.get("/api/services/", {
-      params: params,
-    });
-
-        console.log("반환된 데이터", response.data)
-    return response.data || [];
-
-  } catch (error) {
-        console.error("API getServices 에러:", error);
-    return [];
-  }
-};
-
-export const getServiceDetail = async (serviceId) => {
-    try {
-        const response = await api.get(`/api/services/${serviceId}/`);
-
-
-        console.log("반환된 데이터", response.data)
-        return response.data || [];
-    } catch (error) {
-
-        console.error("API getServices 에러:", error);
-      return [];
-    }
 export const getServices = async ({ q, category, minPrice, maxPrice } = {}) => {
   const params = {};
   if (category) params.category = category;
   if (q) params.name = q; // backend filters: name icontains
-  if (typeof minPrice === "number") params.price_min = minPrice; // RangeFilter(price)
-  if (typeof maxPrice === "number") params.price_max = maxPrice; // RangeFilter(price)
+  if (typeof minPrice === "number") params.price_min = minPrice;
+  if (typeof maxPrice === "number") params.price_max = maxPrice;
   const response = await api.get("/api/services/", { params });
   return response.data;
 };
@@ -43,17 +16,14 @@ export const getServiceDetail = async (serviceId) => {
     const response = await api.get(`/api/services/${serviceId}/`);
     return response.data;
   } catch (error) {
-    // 백엔드 상세 시리얼라이저 오류(예: 불일치 필드)로 500 발생 시
-    // 리스트 + 플랜 엔드포인트를 조합하여 상세 데이터를 구성한다.
+    // 상세 조회 실패 시 리스트 + 플랜 조합 폴백
     const [servicesResp, plansResp] = await Promise.all([
-      api.get('/api/services/'),
+      api.get("/api/services/"),
       api.get(`/api/services/${serviceId}/plans/`),
     ]);
-
     const services = Array.isArray(servicesResp?.data) ? servicesResp.data : [];
     const service = services.find((s) => String(s?.id) === String(serviceId)) || null;
     const plans = Array.isArray(plansResp?.data) ? plansResp.data : [];
-
     return {
       id: service?.id ?? (Number.isNaN(Number(serviceId)) ? serviceId : Number(serviceId)),
       name: service?.name ?? "",
@@ -67,7 +37,7 @@ export const getServiceDetail = async (serviceId) => {
 
 export const getComparison = async (ids = []) => {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const params = { ids: ids.join(',') };
-  const { data } = await api.get('/api/services/compare/', { params });
+  const params = { ids: ids.join(",") };
+  const { data } = await api.get("/api/services/compare/", { params });
   return Array.isArray(data) ? data : [];
 };
