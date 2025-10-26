@@ -44,8 +44,9 @@ export default function PromotionsPage() {
   }, [filters]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
-      <h1 className="text-3xl font-extrabold">프로모션</h1>
+    <div className="container-page section-y">
+      <div className="mx-auto w-full max-w-5xl">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">프로모션</h1>
       {loading && <div className="text-slate-400 mt-4">불러오는 중…</div>}
       {error && <div className="text-red-400 mt-4">{error}</div>}
       {!loading && !error && (
@@ -112,6 +113,7 @@ export default function PromotionsPage() {
         </ul>
         </>
       )}
+      </div>
     </div>
   );
 }

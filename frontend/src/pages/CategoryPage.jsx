@@ -1,17 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import SidebarLayout from "../layouts/SidebarLayout.jsx";
-import ServiceCard from "../components/ServiceCard.jsx";
-import { getServices } from "../services/serviceService";
+import { getServices, getServiceDetail } from "../services/serviceService";
+import { addSubscription, getSubscriptions } from "../services/subscriptionService";
+import useAuth from "../hooks/useAuth";
+import { listFavorites, addFavorite as addFavoriteApi, removeFavorite as removeFavoriteApi } from "../services/favoritesService.js";
 
 export default function CategoryPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth() || {};
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
+  const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const [selected, setSelected] = useState({}); // id -> true
+  const MAX_SELECT = 5;
+  const selectedIds = useMemo(() => Object.entries(selected).filter(([, v]) => v).map(([k]) => k), [selected]);
+  const [hint, setHint] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("recommended");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [inputText, setInputText] = useState("");
   const [view, setView] = useState("card"); // card | list
+  const [addOpen, setAddOpen] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [addPlans, setAddPlans] = useState([]);
+  const [addService, setAddService] = useState({ id: null, name: "" });
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [toastMsg, setToastMsg] = useState("");
+
+  // 카테고리 전환 시 검색/필터 초기화
+  useEffect(() => {
+    setQ("");
+    setMinPrice("");
+    setMaxPrice("");
+    setSort("recommended");
+    setView("card");
+    setSelected({});
+    setFavoriteIds(new Set());
+  }, [slug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,7 +49,12 @@ export default function CategoryPage() {
       setLoading(true);
       setError("");
       try {
-        const rows = await getServices({ q, category: slug });
+        const rows = await getServices({
+          q,
+          category: slug,
+          minPrice: minPrice ? Number(minPrice) : undefined,
+          maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        });
         if (!cancelled) setItems(rows.map((s)=> ({
           id: s.id,
           name: s.name,
@@ -28,6 +63,46 @@ export default function CategoryPage() {
           icon: s.logo_url || undefined,
           nextBilling: undefined,
         })));
+        // 가격 미리보기: 각 서비스의 상세 플랜 중 최저가를 비동기로 조회해 표시
+        Promise.allSettled(
+          (rows || []).map((s) => getServiceDetail(s.id))
+        ).then((results) => {
+          if (cancelled) return;
+          const detailById = new Map();
+          results.forEach((r) => {
+            if (r.status === "fulfilled" && r.value) {
+              detailById.set(String(r.value.id ?? r.value.service ?? ""), r.value);
+            }
+          });
+          setItems((prev) =>
+            prev.map((item) => {
+              const d = detailById.get(String(item.id));
+              const plans = Array.isArray(d?.plans) ? d.plans : [];
+              if (plans.length === 0) return item;
+
+              // 플랜 가격/주기 정규화
+              const normalized = plans
+                .map((p) => {
+                  const raw = p.price ?? p.price_value ?? p.regular ?? null;
+                  const priceNum = Number(String(raw).toString().replace(/[^0-9.]/g, ""));
+                  const hasNum = Number.isFinite(priceNum) && priceNum > 0;
+                  const priceText = hasNum ? `₩ ${priceNum.toLocaleString()}` : (typeof raw === "string" ? raw : "");
+                  const cycleText = p.billing_cycle === "month" ? "월" : p.billing_cycle === "year" ? "연" : (p.cycle || "");
+                  return { priceNum: hasNum ? priceNum : Infinity, priceText, cycleText };
+                })
+                .filter((x) => x.priceNum !== Infinity);
+
+              if (normalized.length === 0) return item;
+              const cheapest = normalized.sort((a, b) => a.priceNum - b.priceNum)[0];
+              return { ...item, price: cheapest.priceText, billing_cycle: cheapest.cycleText };
+            })
+          );
+        }).catch(() => {});
+
+        // 즐겨찾기 초기 로드
+        listFavorites()
+          .then((ids) => { if (!cancelled) setFavoriteIds(new Set((ids || []).map(String))); })
+          .catch(() => {});
       } catch (e) {
         if (!cancelled) setError("데이터를 불러오는 중 오류가 발생했어요.");
       } finally {
@@ -38,16 +113,64 @@ export default function CategoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, q, sort]);
+  }, [slug, q, sort, minPrice, maxPrice]);
+
+  async function openAdd(serviceId, serviceName) {
+    if (!isAuthenticated) {
+      alert("로그인이 필요한 서비스입니다.");
+      navigate("/login", { replace: false, state: { from: location } });
+      return;
+    }
+    setAddService({ id: serviceId, name: serviceName });
+    setAddOpen(true);
+    setAddLoading(true);
+    setAddPlans([]);
+    setSelectedPlanId(null);
+    try {
+      const detail = await getServiceDetail(serviceId);
+      const plans = Array.isArray(detail?.plans) ? detail.plans : [];
+      setAddPlans(plans);
+    } catch (_) {
+      setAddPlans([]);
+    } finally {
+      setAddLoading(false);
+    }
+  }
+
+  async function confirmAdd() {
+    if (!selectedPlanId) return;
+    try {
+      // 중복 추가 방지: 내 구독 리스트에서 동일 플랜이 있는지 확인
+      try {
+        const my = await getSubscriptions();
+        const items = Array.isArray(my?.results) ? my.results : [];
+        const already = items.some((s)=> String(s.plan) === String(selectedPlanId));
+        if (already) {
+          const ok = window.confirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
+          if (!ok) return;
+        }
+      } catch (_) {}
+
+      await addSubscription(selectedPlanId);
+      setToastMsg("구독 서비스가 추가되었습니다.");
+      setTimeout(()=> setToastMsg(""), 1800);
+      setAddOpen(false);
+    } catch (e) {
+      setToastMsg("구독 추가에 실패했습니다. 관리자에게 문의해주세요.");
+      setTimeout(()=> setToastMsg(""), 2000);
+    }
+  }
 
   return (
     <SidebarLayout>
+      <div className="container-page section-y">
+        <div className="mx-auto w-full max-w-6xl">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">카테고리: {slug}</h1>
           {q && <p className="mt-1 text-slate-400">검색어: "{q}"</p>}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div>
             <label className="text-sm block mb-1" htmlFor="sort">정렬</label>
             <select
@@ -89,8 +212,8 @@ export default function CategoryPage() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const input = e.currentTarget.querySelector('input[name="q"]');
-          setQ(input?.value?.trim() || "");
+          setQ((inputText || "").trim());
+          setInputText("");
         }}
         className="mt-6 flex items-center gap-3 flex-nowrap"
         role="search"
@@ -98,13 +221,55 @@ export default function CategoryPage() {
       >
         <input
           name="q"
-          defaultValue={q}
+          value={inputText}
+          onChange={(e)=> setInputText(e.target.value)}
           placeholder="이 카테고리에서 검색"
-          className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-cyan-400"
+            className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-fuchsia-400"
           aria-label="검색어 입력"
         />
-        <button type="submit" className="h-10 whitespace-nowrap rounded-2xl px-4 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition">검색</button>
+        <button type="submit" className="h-10 whitespace-nowrap rounded-2xl px-4 btn-primary text-slate-50 font-semibold hover:opacity-95 transition">검색</button>
       </form>
+
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label className="text-sm block mb-1" htmlFor="min">최소 가격</label>
+          <input
+            id="min"
+            type="number"
+            inputMode="numeric"
+            className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2"
+            placeholder="0"
+            value={minPrice}
+            onChange={(e)=> setMinPrice(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-sm block mb-1" htmlFor="max">최대 가격</label>
+          <input
+            id="max"
+            type="number"
+            inputMode="numeric"
+            className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2"
+            placeholder="20000"
+            value={maxPrice}
+            onChange={(e)=> setMaxPrice(e.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={()=> {
+            setMinPrice("");
+            setMaxPrice("");
+            setQ("");
+            setInputText("");
+            setSort("recommended");
+            setView("card");
+          }}
+          className="self-end h-10 whitespace-nowrap rounded-2xl px-4 btn-primary text-slate-50 font-semibold hover:opacity-95 transition"
+        >
+          필터 초기화
+        </button>
+      </div>
 
       <div className="mt-8" aria-live="polite" aria-atomic="true">
         {loading && <div className="text-slate-400">로딩 중…</div>}
@@ -115,28 +280,263 @@ export default function CategoryPage() {
 
         {view === "card" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((s) => (
-              <ServiceCard key={s.id} {...s} />
-            ))}
+            {items.map((s) => {
+              const checked = Boolean(selected[String(s.id)]);
+              return (
+                <div
+                  key={s.id}
+                  className={`rounded-2xl bg-slate-900/60 p-5 ring-1 ${checked ? 'ring-fuchsia-500' : 'ring-white/10'} shadow-lg transition`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {s.icon ? (
+                          <img src={s.icon} alt={s.name} className="h-7 w-7 rounded" />
+                        ) : (
+                          <div className="h-7 w-7 rounded bg-white/10 flex items-center justify-center text-xs text-slate-300">{(s.name || '?').slice(0,1)}</div>
+                        )}
+                        {s.id ? (
+                          <Link to={`/services/${s.id}`} className="text-xl font-bold truncate hover:underline" title={s.name}>
+                            {s.name}
+                          </Link>
+                        ) : (
+                          <div className="text-xl font-bold truncate" title={s.name}>{s.name}</div>
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-300 whitespace-nowrap">
+                        {s.price ? `${s.billing_cycle ? `${s.billing_cycle} ` : ""} ${s.price} ~` : "가격 정보 없음"}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs"
+                        onClick={async (e)=> {
+                          e.stopPropagation();
+                          const idStr = String(s.id);
+                          const isFav = favoriteIds.has(idStr);
+                          try {
+                            if (isFav) {
+                              const ok = await removeFavoriteApi(idStr);
+                              setFavoriteIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
+                              setToastMsg('즐겨찾기를 해제했어요.');
+                            } else {
+                              const ok = await addFavoriteApi(idStr);
+                              setFavoriteIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
+                              setToastMsg('즐겨찾기에 추가했어요.');
+                            }
+                          } catch (_) {
+                            setToastMsg('즐겨찾기 추가에 실패했어요. 관리자에게 문의해주세요.');
+                          } finally {
+                            setTimeout(()=> setToastMsg(""), 1800);
+                          }
+                        }}
+                        aria-label="즐겨찾기 토글"
+                        title="즐겨찾기"
+                      >{favoriteIds.has(String(s.id)) ? '★' : '☆'}</button>
+                      <input
+                        type="checkbox"
+                        className="accent-fuchsia-500 mt-1"
+                        checked={checked}
+                        onChange={(e)=> {
+                          const idStr = String(s.id);
+                          setSelected((prev)=> {
+                            if (e.target.checked) {
+                              const count = Object.values(prev).filter(Boolean).length;
+                              if (count >= MAX_SELECT) {
+                                setHint(`최대 ${MAX_SELECT}개까지 선택할 수 있어요.`);
+                                setTimeout(()=> setHint(""), 1800);
+                                return prev;
+                              }
+                              return { ...prev, [idStr]: true };
+                            } else {
+                              const next = { ...prev };
+                              delete next[idStr];
+                              return next;
+                            }
+                          });
+                        }}
+                        aria-label="비교 대상 선택"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    {s.id && <Link to={`/services/${s.id}`} className="text-fuchsia-300 hover:underline text-sm">상세 보기</Link>}
+                    {s.id && (
+                      <button
+                        type="button"
+                        onClick={() => openAdd(s.id, s.name)}
+                        className="px-3 py-1 rounded-xl btn-primary text-slate-50 whitespace-nowrap text-sm"
+                      >
+                        구독목록 추가
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <ul className="divide-y divide-white/10">
             {items.map((s) => (
-              <li key={s.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
+              <li key={s.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {s.icon && <img src={s.icon} alt="로고" className="w-6 h-6 rounded" />}
-                  <div className="font-medium">{s.name}</div>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="text-slate-300">{s.price ?? "가격 정보 없음"}</div>
-                  {s.nextBilling && (
-                    <div className="text-slate-400">다음 결제일: {s.nextBilling}</div>
+                  {s.id ? (
+                    <Link to={`/services/${s.id}`} className="font-medium hover:underline truncate">
+                      {s.name}
+                    </Link>
+                  ) : (
+                    <span className="font-medium truncate">{s.name}</span>
                   )}
+                </div>
+                <div className="flex items-center gap-6 text-sm text-left sm:text-right">
+                  <div className="text-slate-300 whitespace-nowrap">{s.price ? `${s.billing_cycle ? `${s.billing_cycle} ` : ""} ${s.price} ~` : "가격 정보 없음"}</div>
+                  {s.nextBilling && (
+                    <div className="text-slate-400 whitespace-nowrap">다음 결제일: {s.nextBilling}</div>
+                  )}
+                  {s.id && (
+                    <button
+                      type="button"
+                      onClick={() => openAdd(s.id, s.name)}
+                      className="px-3 py-1 rounded-xl btn-primary text-slate-50 whitespace-nowrap"
+                    >
+                      구독목록 추가
+                    </button>
+                  )}
+                  <button
+                    className="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs"
+                    onClick={async ()=> {
+                      const idStr = String(s.id);
+                      const isFav = favoriteIds.has(idStr);
+                      try {
+                        if (isFav) {
+                          const ok = await removeFavoriteApi(idStr);
+                          setFavoriteIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
+                          setToastMsg('즐겨찾기를 해제했어요.');
+                        } else {
+                          const ok = await addFavoriteApi(idStr);
+                          setFavoriteIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
+                          setToastMsg('즐겨찾기에 추가했어요.');
+                        }
+                      } catch (_) {
+                        setToastMsg('네트워크 오류로 즐겨찾기 변경에 실패했어요.');
+                      } finally {
+                        setTimeout(()=> setToastMsg(""), 1800);
+                      }
+                    }}
+                    aria-label="즐겨찾기 토글"
+                    title="즐겨찾기"
+                  >{favoriteIds.has(String(s.id)) ? '★' : '☆'}</button>
+                  {/* 비교 선택 체크박스 */}
+                  <input
+                    type="checkbox"
+                    className="accent-fuchsia-500"
+                    checked={Boolean(selected[String(s.id)])}
+                    onChange={(e)=> {
+                      const idStr = String(s.id);
+                      setSelected((prev)=> {
+                        if (e.target.checked) {
+                          const count = Object.values(prev).filter(Boolean).length;
+                          if (count >= MAX_SELECT) {
+                            setHint(`최대 ${MAX_SELECT}개까지 선택할 수 있어요.`);
+                            setTimeout(()=> setHint(""), 1800);
+                            return prev;
+                          }
+                          return { ...prev, [idStr]: true };
+                        } else {
+                          const next = { ...prev };
+                          delete next[idStr];
+                          return next;
+                        }
+                      });
+                    }}
+                    aria-label="비교 대상 선택"
+                  />
                 </div>
               </li>
             ))}
           </ul>
         )}
+        {(hint || selectedIds.length>0) && (
+          <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+            {hint ? <div className="text-amber-300">{hint}</div> : <div />}
+            <div className="text-slate-400">선택 {selectedIds.length}/{MAX_SELECT}</div>
+          </div>
+        )}
+        {/* 하단 고정 비교 바 */}
+        <div className="sticky bottom-3 mt-6">
+          <div className="mx-auto max-w-6xl rounded-2xl bg-slate-900/80 ring-1 ring-white/10 p-3 flex items-center justify-between gap-3">
+            <div className="text-sm text-slate-300">
+              선택 <span className={`px-2 py-0.5 rounded-full ${selectedIds.length >= MAX_SELECT ? 'bg-amber-400/20 text-amber-300' : 'bg-white/10'}`}>{selectedIds.length}/{MAX_SELECT}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={()=> setSelected({})} className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15">선택 해제</button>
+              <button
+                type="button"
+                disabled={selectedIds.length < 2}
+                onClick={()=> navigate(`/compare-cards?ids=${selectedIds.join(',')}`)}
+                className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
+              >카드 비교하기</button>
+            </div>
+          </div>
+        </div>
+        {addOpen && (
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setAddOpen(false)} />
+            <div className="relative w-full max-w-md rounded-2xl bg-slate-900 p-6 ring-1 ring-white/10">
+              <h3 className="text-lg font-semibold">내 구독에 추가</h3>
+              <p className="mt-2 text-slate-300 truncate">{addService.name}</p>
+              <div className="mt-4 max-h-64 overflow-auto rounded-xl bg-slate-950/40 p-3 ring-1 ring-white/10">
+                {addLoading ? (
+                  <div className="text-slate-400">플랜 정보를 불러오는 중…</div>
+                ) : addPlans.length === 0 ? (
+                  <div className="text-slate-400">선택 가능한 플랜이 없어요. 상세 페이지에서 확인해보세요.</div>
+                ) : (
+                  <ul className="space-y-2">
+                    {addPlans.map((p) => {
+                      const cycleText = p.billing_cycle === 'month' ? '월' : p.billing_cycle === 'year' ? '연' : (p.cycle || '');
+                      const priceNum = Number(p.price || p.price_value || 0);
+                      const priceText = Number.isFinite(priceNum) ? `₩ ${priceNum.toLocaleString()}` : String(p.price || '');
+                      return (
+                        <li key={p.id} className="flex items-center gap-3">
+                          <input
+                            id={`plan-${p.id}`}
+                            type="radio"
+                            name="plan"
+                            className="accent-fuchsia-500"
+                            checked={selectedPlanId === p.id}
+                            onChange={() => setSelectedPlanId(p.id)}
+                          />
+                          <label htmlFor={`plan-${p.id}`} className="flex-1 cursor-pointer flex items-center justify-between gap-3">
+                            <span className="truncate">{p.plan_name || p.name}</span>
+                            <span className="text-slate-300 whitespace-nowrap">{cycleText} {priceText}</span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button onClick={() => setAddOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
+                <button
+                  onClick={confirmAdd}
+                  disabled={!selectedPlanId}
+                  className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
+                >
+                  추가
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {toastMsg && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-fuchsia-600/90 text-slate-50 shadow-lg z-50" role="status" aria-live="polite">
+            {toastMsg}
+          </div>
+        )}
+      </div>
+        </div>
       </div>
     </SidebarLayout>
   );

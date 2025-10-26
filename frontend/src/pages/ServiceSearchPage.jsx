@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, Link, useSearchParams } from "react-router-dom";
 import ServiceCard from "../components/ServiceCard.jsx";
 // import { searchServices } from "../services/mockApi";
@@ -30,9 +30,32 @@ export default function ServiceSearchPage() {
   const [opCategory, setOpCategory] = useState("or");
   const [page, setPage] = useState(1);
   const pageSize = 9;
+  const didResetRef = useRef(false);
+  const [inputText, setInputText] = useState("");
+
+  // 페이지 최초 진입 시 검색/필터 상태 초기화 (단, URL에 q가 있으면 유지)
+  useEffect(() => {
+    const hasQ = Boolean(query.get("q")?.trim());
+    if (!hasQ) {
+      const params = new URLSearchParams();
+      setSearchParams(params, { replace: true });
+      setSort("recommended");
+      setOnlyOtt(false);
+      setMinPrice("");
+      setMaxPrice("");
+      setSelectedBenefits([]);
+      setFreeTrial(false);
+      setCategories([]);
+      setOpCategory("or");
+      setPage(1);
+      didResetRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // URL -> 상태 초기화 (첫 마운트 시)
+    if (didResetRef.current) return; // 초기화 직후에는 스킵
     const sortP = query.get("sort");
     if (sortP) setSort(sortP);
     const onlyOttP = query.get("onlyOtt");
@@ -80,9 +103,9 @@ async function run() {
   try {
     const apiParams = {
       q: q,
-      min_price: minPrice ? Number(minPrice) : undefined,
-      max_price: maxPrice ? Number(maxPrice) : undefined,
-      categories: categories
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      // 단일 카테고리 API만 지원하므로 다중 카테고리는 현재 무시
     };
 
     const rows = await getServices(apiParams);
@@ -146,18 +169,19 @@ return () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+      <div className="container-page section-y">
+        <div className="mx-auto w-full max-w-6xl">
         {/* 인라인 검색바 + 정렬 */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">서비스 검색</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">서비스 검색</h1>
             {q && <p className="mt-1 text-slate-400">검색어: "{q}"</p>}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <label className="inline-flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="accent-cyan-400"
+                className="accent-fuchsia-500"
                 checked={onlyOtt}
                 onChange={(e) => setOnlyOtt(e.target.checked)}
                 aria-label="OTT만 보기"
@@ -187,12 +211,11 @@ return () => {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const form = e.currentTarget;
-              const input = form.querySelector('input[name="q"]');
-              const next = input?.value?.trim() || "";
+              const next = (inputText || "").trim();
               const params = new URLSearchParams(searchParams);
               if (next) params.set("q", next); else params.delete("q");
               setSearchParams(params, { replace: true });
+              setInputText("");
             }}
             className="flex-1 flex items-center gap-3 flex-nowrap"
             role="search"
@@ -200,14 +223,15 @@ return () => {
           >
             <input
               name="q"
-              defaultValue={q}
+              value={inputText}
+              onChange={(e)=> setInputText(e.target.value)}
               placeholder="서비스 이름으로 검색 (예: 넷플릭스, 디즈니+)"
-              className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-cyan-400"
+              className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-fuchsia-400"
               aria-label="검색어 입력"
             />
             <button
               type="submit"
-              className="h-10 whitespace-nowrap rounded-2xl px-4 bg-cyan-400 text-slate-900 font-semibold hover:opacity-90 transition shadow-lg focus-ring"
+              className="h-10 whitespace-nowrap rounded-2xl px-4 btn-primary text-slate-50 font-semibold hover:opacity-95 transition shadow-lg focus-ring"
               aria-label="검색 실행"
             >
               검색
@@ -237,7 +261,7 @@ return () => {
                 {["video","AI","delivery", "shopping", "productivity","music","design","cloud_storage"].map((c)=>{
                   const active = categories.includes(c);
                   return (
-                    <button key={c} type="button" onClick={()=> setCategories(prev=> active? prev.filter(x=>x!==c): [...prev, c])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'bg-cyan-400 text-slate-900' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>#{c}</button>
+                    <button key={c} type="button" onClick={()=> setCategories(prev=> active? prev.filter(x=>x!==c): [...prev, c])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'btn-primary text-slate-50' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>#{c}</button>
                   );
                 })}
                 <select value={opCategory} onChange={(e)=>setOpCategory(e.target.value)} className="rounded-2xl bg-slate-900 border border-white/10 px-3 py-2">
@@ -260,13 +284,13 @@ return () => {
                 {benefitChips.map((b)=>{
                   const active = selectedBenefits.includes(b);
                   return (
-                    <button key={b} type="button" onClick={()=>setSelectedBenefits(prev=> active? prev.filter(x=>x!==b): [...prev,b])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'bg-cyan-400 text-slate-900' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>{b}</button>
+                    <button key={b} type="button" onClick={()=>setSelectedBenefits(prev=> active? prev.filter(x=>x!==b): [...prev,b])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'btn-primary text-slate-50' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>{b}</button>
                   )
                 })}
               </div>
             </div>
             <label className="inline-flex items-center gap-2 text-sm">
-              <input type="checkbox" className="accent-cyan-400" checked={freeTrial} onChange={(e)=>setFreeTrial(e.target.checked)} />
+              <input type="checkbox" className="accent-fuchsia-500" checked={freeTrial} onChange={(e)=>setFreeTrial(e.target.checked)} />
               무료체험
             </label>
             <button type="button" onClick={()=>{setMinPrice("");setMaxPrice("");setSelectedBenefits([]);setFreeTrial(false);setCategories([]);}} className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15">필터 초기화</button>
@@ -303,20 +327,17 @@ return () => {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {items.map((s) => (
-    <Link
-      key={s.id}
-      to={`/services/${s.id}`}
-      className="block p-6 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
-    >
-      <h3 className="text-xl font-bold">{s.name}</h3>
-      <p className="mt-2 text-slate-400">{s.category}</p>
-      <p className="mt-1 text-sm text-slate-500">{s.description}</p>
-      <p className="mt-1 text-sm text-slate-300">(월 가격 기준) 최소 {s.min_price}원 ~ 최대 {s.max_price}원</p>
-    </Link>
-  ))}
-            {items.slice((page-1)*pageSize, page*pageSize).map((s) => (
-              <ServiceCard key={s.id} {...s} />
+            {items.map((s) => (
+              <Link
+                key={s.id}
+                to={`/services/${s.id}`}
+                className="block p-6 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
+              >
+                <h3 className="text-xl font-bold truncate">{s.name}</h3>
+                <p className="mt-2 text-slate-400 truncate">{s.category}</p>
+                <p className="mt-1 text-sm text-slate-500 line-clamp-2">{s.description}</p>
+                <p className="mt-1 text-sm text-slate-300 whitespace-nowrap">(월 가격 기준) 최소 {s.min_price}원 ~ 최대 {s.max_price}원</p>
+              </Link>
             ))}
           </div>
           <div className="mt-6 flex items-center justify-between">
@@ -338,6 +359,7 @@ return () => {
               다음
             </button>
           </div>
+      </div>
         </div>
       </div>
     </div>

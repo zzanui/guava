@@ -17,6 +17,18 @@ export default function Sidebar() {
   return (
     <aside className="w-full md:w-64 shrink-0 border-r border-white/10 bg-slate-950/80">
       <nav className="p-4 space-y-1">
+        <NavLink
+          to="/services"
+          className={({ isActive }) =>
+            `block rounded-xl px-3 py-2 transition focus-ring ${
+              isActive ? "bg-white/10 text-slate-100" : "hover:bg-white/5 text-slate-300"
+            }`
+          }
+          aria-label="전체 서비스 보기"
+        >
+          전체 서비스
+        </NavLink>
+        <hr className="my-2 border-white/10" />
         {CATEGORIES.map((c) => (
           <NavLink
             key={c.slug}

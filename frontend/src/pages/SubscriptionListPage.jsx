@@ -33,30 +33,36 @@ export default function SubscriptionListPage() {
   }, []);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">내 구독 리스트</h1>
+    <div className="container-page section-y">
+      <div className="mx-auto w-full max-w-3xl">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4">내 구독 리스트</h1>
       {loading && <div className="text-slate-400">로딩 중…</div>}
       {error && <div className="text-red-400">{error}</div>}
-      {!loading && !error && rows.map((sub) => (
-        <SubscriptionItem
-          key={sub.id}
-          name={`${sub.plan_service_name || ""} ${sub.plan_name || ""}`.trim()}
-          price={`₩ ${Number(sub.price_override ?? sub.plan_price ?? 0).toLocaleString()}`}
-          onDelete={async () => {
-            try {
-              await deleteSubscription(sub.id);
-              setRows((prev)=> {
-                const next = prev.filter((x)=> x.id !== sub.id);
-                const nextTotal = next.reduce((acc, s) => acc + Number(s.price_override ?? s.plan_price ?? 0), 0);
-                setTotal(nextTotal);
-                return next;
-              });
-            } catch (_) {}
-          }}
-        />
-      ))}
-      <hr className="my-4" />
-      <p className="font-bold">총합: ₩ {Number(total||0).toLocaleString()}</p>
+      <div className="space-y-3">
+        {!loading && !error && rows.map((sub) => (
+          <SubscriptionItem
+            key={sub.id}
+            name={`${sub.plan_service_name || ""} ${sub.plan_name || ""}`.trim()}
+            price={`₩ ${Number(sub.price_override ?? sub.plan_price ?? 0).toLocaleString()}`}
+            onDelete={async () => {
+              const ok = window.confirm("정말 삭제하시겠습니까?");
+              if (!ok) return;
+              try {
+                await deleteSubscription(sub.id);
+                setRows((prev)=> {
+                  const next = prev.filter((x)=> x.id !== sub.id);
+                  const nextTotal = next.reduce((acc, s) => acc + Number(s.price_override ?? s.plan_price ?? 0), 0);
+                  setTotal(nextTotal);
+                  return next;
+                });
+              } catch (_) {}
+            }}
+          />
+        ))}
+      </div>
+      <hr className="my-6" />
+      <p className="text-xl md:text-2xl font-extrabold">총합: ₩ {Number(total||0).toLocaleString()}</p>
+      </div>
     </div>
   );
 }

@@ -16,7 +16,7 @@ export default function ComparisonPage() {
   const [sort, setSort] = useState("recommended");
   const [selected, setSelected] = useState({});
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
-  const ids = useMemo(() => (searchParams.get('ids') || '').split(',').map((v)=> v.trim()).filter(Boolean), [searchParams]);
+  const ids = useMemo(() => (searchParams.get('ids') || searchParams.get('plan_id') || '').split(',').map((v)=> v.trim()).filter(Boolean), [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,11 +65,12 @@ export default function ComparisonPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
-        <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">가격 비교</h1>
+      <div className="container-page section-y">
+        <div className="mx-auto w-full max-w-6xl">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">가격 비교</h1>
         <p className="mt-2 text-slate-400">정가·할인·번들을 한 눈에 비교해 보세요.</p>
 
-        <div className="mt-4 flex items-end gap-3">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
           <div>
             <label className="text-sm block mb-1" htmlFor="sort-compare">정렬</label>
             <select
@@ -85,7 +86,7 @@ export default function ComparisonPage() {
               <option value="nameAsc">가나다순</option>
             </select>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => setShowSelectedOnly((v) => !v)}
@@ -153,13 +154,13 @@ export default function ComparisonPage() {
               )}
               {!loading && !error && visibleRows.map((r) => (
                 <tr key={r.name} className="border-t border-white/10">
-                  <td className="px-4 py-3"><input type="checkbox" className="accent-cyan-400" checked={Boolean(selected[r.name])} onChange={(e)=> setSelected(prev=> ({...prev, [r.name]: e.target.checked}))} /></td>
-                  <th scope="row" className="px-4 py-3 font-medium">{r.name}</th>
-                  <td className="px-4 py-3">{formatCurrency(r.regular)}</td>
-                  <td className="px-4 py-3 text-cyan-300">
+                  <td className="px-4 py-3"><input type="checkbox" className="accent-fuchsia-500" checked={Boolean(selected[r.name])} onChange={(e)=> setSelected(prev=> ({...prev, [r.name]: e.target.checked}))} /></td>
+                  <th scope="row" className="px-4 py-3 font-medium whitespace-nowrap">{r.name}</th>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatCurrency(r.regular)}</td>
+                  <td className="px-4 py-3 text-fuchsia-300 whitespace-nowrap">
                     {r.discount ? formatCurrency(r.discount) : "-"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {r.bundle ? (
                       <span className="inline-flex items-center gap-2" title={(r.benefits || []).join(", ") || undefined}>
                         {formatCurrency(r.bundle)}
@@ -177,7 +178,8 @@ export default function ComparisonPage() {
         <div className="mt-3 text-sm text-slate-400">선택 {Object.values(selected).filter(Boolean).length}개 · 표시 {visibleRows.length}개</div>
 
         <div className="mt-6">
-          <Link to="/" className="text-cyan-300 hover:underline">홈으로 돌아가기 →</Link>
+          <Link to="/" className="text-fuchsia-300 hover:underline">홈으로 돌아가기 →</Link>
+      </div>
         </div>
       </div>
     </div>

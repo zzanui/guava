@@ -2,9 +2,9 @@
 import axios from "axios";
 import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens } from "./tokenStorage";
 const api = axios.create({
-  // baseURL: import.meta.env.VITE_API_BASE_URL, // http://127.0.0.1:8000
-  baseURL: "http://localhost:8000",
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://13.209.4.84:8000", // env 미설정 시 로컬 기본값
+  // 개발: vite 프록시 사용 -> ""(상대 경로)
+  // 배포: VITE_API_BASE_URL 설정 시 해당 절대 경로 사용
+  baseURL: import.meta.env.VITE_API_BASE_URL || "",
   withCredentials: false, // 추후 쿠키 전략으로 전환 시 true로 변경
 });
 
@@ -131,3 +131,22 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// --- Prefs sync client (stub endpoints) ---
+export async function syncPrefsToServer(payload) {
+  try {
+    const { data } = await api.post('/api/my/prefs/sync/', payload);
+    return data;
+  } catch (e) {
+    throw e;
+  }
+}
+
+export async function fetchPrefsFromServer() {
+  try {
+    const { data } = await api.get('/api/my/prefs/');
+    return data;
+  } catch (e) {
+    throw e;
+  }
+}

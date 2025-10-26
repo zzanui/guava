@@ -16,14 +16,14 @@ function toISODate(date) {
 export const addSubscription = async (
   planId,
   {
-    startDate,
-    nextPaymentDate,
-    memo = "",
-    priceOverride,
+    price_override,
+    start_date,
+    next_payment_date,
+    custom_memo = "",
   } = {}
 ) => {
-  const payload = { plan: planId };
-  if (typeof priceOverride === "number") payload.price_override = priceOverride;
+  const payload = { plan: Number(planId), start_date :"2025-10-21", next_payment_date :"2025-11-21", custom_memo : "test"};
+  if (typeof price_override === "number") payload.price_override = price_override;
   return api.post(`/api/my/subscriptions/`, payload);
 };
 

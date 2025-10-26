@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 // 💡 1. Mock API 대신 실제 API 서비스 함수를 import 합니다.
 import { getServiceDetail } from "../services/serviceService";
 import DetailServiceCard from "../components/ServiceCard"; // 요금제 표시에 필요하다면 사용
-import { addSubscription } from "../services/subscriptionService";
+import { addSubscription, getSubscriptions } from "../services/subscriptionService";
 import { addSubscription as addLocalSubscription } from "../services/localSubscriptions.js";
-import { toggleFavorite } from "../services/localPrefs.js";
+import { getNote, setNote } from "../services/localPrefs.js";
+import { addFavorite as addFavApi, isFavorite as isFavApi } from "../services/favoritesService";
 import { getPriceHistory, listPromotions, listBundles } from "../services/mockApi";
+import SidebarLayout from "../layouts/SidebarLayout.jsx";
+import useAuth from "../hooks/useAuth";
 
 export default function ServiceDetailPage() {
   // 💡 2. URL의 동적인 ID 값을 가져옵니다.
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth() || {};
 
   const [service, setService] = useState(null); // 상세 정보 (요금제 포함)
   const [loading, setLoading] = useState(false);
@@ -21,91 +27,153 @@ export default function ServiceDetailPage() {
   const [priceHistory, setPriceHistory] = useState([]);
   const [promos, setPromos] = useState([]);
   const [bundles, setBundles] = useState([]);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [toastMsg, setToastMsg] = useState("");
 
   useEffect(() => {
     // URL의 id가 바뀔 때마다 실행됩니다.
     if (!id) return; // id가 없으면 실행하지 않음
 
+    let cancelled = false;
     async function run() {
-      let cancelled = false;
       setLoading(true);
       setError("");
       try {
-        // 💡 3. URL에서 가져온 id로 실제 API를 호출합니다.
-        const data = await getServiceDetail(id);
-        if (!cancelled) setService(data);
+        const s = await getServiceDetail(id);
+        if (cancelled) return;
+        setService(s);
+        const mapped = {
+          id: s.id,
+          name: s.name,
+          officialUrl: s.official_link || undefined,
+          plans: Array.isArray(s.plans) ? s.plans.map((p) => ({
+            id: p.id,
+            name: p.plan_name,
+            price: `₩ ${Number(p.price || 0).toLocaleString()}`,
+            cycle: p.billing_cycle === 'year' ? '연' : '월',
+            benefits: (p.benefits || '').split(',').map((v)=> v.trim()).filter(Boolean),
+            freeTrial: false,
+          })) : [],
+        };
+        setData(mapped);
+        try {
+          setNoteText(getNote(s.id));
+        } catch (_) { setNoteText(""); }
+        try {
+          const [ph, pm, bd] = await Promise.all([
+            getPriceHistory(id),
+            listPromotions({ targetType: "service", targetId: id }),
+            listBundles(),
+          ]);
+          if (!cancelled) {
+            setPriceHistory(ph);
+            setPromos(pm);
+            setBundles(bd);
+          }
+        } catch (_) {}
       } catch (e) {
-        console.error("상세 정보 로딩 실패:", e);
-        setError("서비스 정보를 불러오는 데 실패했습니다.");
-      } finally {
-        setLoading(false);
-      }
-      const s = await getServiceDetail(id);
-      // backend ServiceDetailSerializer 매핑
-      const mapped = {
-        id: s.id,
-        name: s.name,
-        officialUrl: s.official_link || undefined,
-        plans: Array.isArray(s.plans) ? s.plans.map((p) => ({
-          id: p.id,
-          name: p.plan_name,
-          price: `₩ ${Number(p.price || 0).toLocaleString()}`,
-          cycle: p.billing_cycle === 'year' ? '연' : '월',
-          benefits: (p.benefits || '').split(',').map((v)=> v.trim()).filter(Boolean),
-          freeTrial: false,
-        })) : [],
-      };
-      if (!cancelled) setData(mapped);
-      // 읽기 전용: 가격이력/프로모션/번들(목업)
-      try {
-        const [ph, pm, bd] = await Promise.all([
-          getPriceHistory(id),
-          listPromotions({ targetType: "service", targetId: id }),
-          listBundles(),
-        ]);
         if (!cancelled) {
-          setPriceHistory(ph);
-          setPromos(pm);
-          setBundles(bd);
+          console.error("상세 정보 로딩 실패:", e);
+          setError("서비스 정보를 불러오는 데 실패했습니다.");
         }
-      } catch (_) {}
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     run();
-    return () => { /* 취소 플래그 */ };
+    return () => { cancelled = true; };
   }, [id]); // 💡 4. 의존성 배열에 id를 꼭 넣어줍니다.
 
   if (loading) return <div>로딩 중...</div>;
   if (error) return <div>{error}</div>;
   if (!service) return <div>서비스 정보가 없습니다.</div>;
   const handleAddSubscription = async (planId) => {
+    if (!isAuthenticated) {
+      alert("로그인이 필요한 서비스입니다.");
+      navigate("/login", { replace: false, state: { from: location } });
+      return;
+    }
     try {
+      // 현재 내 구독 리스트 조회 후 중복 확인
+      try {
+        const my = await getSubscriptions();
+        const items = Array.isArray(my?.results) ? my.results : [];
+        const already = items.some((s)=> String(s.plan) === String(planId));
+        if (already) {
+          const ok = window.confirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
+          if (!ok) return;
+        }
+      } catch (_) {}
+
       // API 호출 (인증 토큰은 api.js가 자동으로 처리)
       await addSubscription(planId);
 
-      // 3. 성공 피드백
-      alert("구독이 성공적으로 추가되었습니다! '마이페이지'에서 확인하세요.");
+      // 3. 성공 피드백 (하이라이트 토스트)
+      setToastMsg("구독 서비스가 추가되었습니다.");
+      setTimeout(()=> setToastMsg(""), 1800);
 
     } catch (error) {
       console.error("구독 추가 실패:", error);
-      // 401 오류(로그인 안 됨) 등 다양한 에러 처리
-      alert("구독 추가에 실패했습니다. 로그인 상태를 확인해주세요.");
+      const serverMsg = error?.response?.data ? JSON.stringify(error.response.data) : null;
+      // 서버 실패 시 로컬에만 저장하는 폴백
+      try {
+        const p = Array.isArray(service?.plans) ? service.plans.find((x)=> x.id === planId) : null;
+        const priceValue = Number(String(p?.price || "").toString().replace(/[^0-9.]/g, "")) || 0;
+        addLocalSubscription({ name: `${service?.name || ""} ${p?.plan_name || ""}`.trim(), priceValue });
+        setToastMsg(serverMsg ? "서버 오류로 로컬에만 추가되었습니다." : "서버 오류로 로컬에만 추가되었습니다.");
+        setTimeout(()=> setToastMsg(""), 2000);
+      } catch (_) {
+        setToastMsg("구독 추가에 실패했습니다. 관리자에게 문의해주세요.");
+        setTimeout(()=> setToastMsg(""), 2000);
+      }
     }
   };
   return (
-    <div>
-      <h1>{service.name}</h1>
-      <p>{service.description}</p>
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
-        <div className="flex items-center justify-between">
-          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">{data.name}</h1>
-          <button onClick={()=> toggleFavorite(data.name)} className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15">즐겨찾기</button>
+    <SidebarLayout>
+      <div className="container-page section-y">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight truncate">{data?.name || service?.name || ""}</h1>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={async ()=> {
+                const sid = service?.id ?? data?.id;
+                if (!sid) return;
+                try {
+                  const exists = await isFavApi(sid);
+                  if (exists) {
+                    setToastMsg("이미 즐겨찾기에 있습니다.");
+                    setTimeout(()=> setToastMsg(""), 1800);
+                    return;
+                  }
+                  await addFavApi(sid);
+                  setToastMsg("즐겨찾기에 추가되었습니다.");
+                  setTimeout(()=> setToastMsg(""), 1800);
+                } catch (_) {
+                  setToastMsg("즐겨찾기 처리 중 문제가 발생했습니다.");
+                  setTimeout(()=> setToastMsg(""), 2000);
+                }
+              }}
+              className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95"
+            >
+              즐겨찾기
+            </button>
+            <button onClick={()=> setNoteOpen(true)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 font-semibold">메모</button>
+          </div>
         </div>
 
-    <div>
-    {service.plans && service.plans.map((plan) => {
+        {noteText && (
+          <div className="mt-3 rounded-2xl bg-slate-900/60 p-4 ring-1 ring-white/10 text-slate-200">
+            <div className="text-xs text-slate-400 mb-1">내 메모</div>
+            <div className="whitespace-pre-wrap break-words">{noteText}</div>
+          </div>
+        )}
+
+    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {Array.isArray(service?.plans) && service.plans.map((plan) => {
         const cycleText = plan.billing_cycle === 'month' ? '월' : '연';
-        const formattedPrice = `₩ ${parseInt(plan.price).toLocaleString('ko-KR')}`;
+        const priceNum = Number(plan.price || 0);
+        const formattedPrice = `₩ ${priceNum.toLocaleString('ko-KR')}`;
 
         return (
           <DetailServiceCard
@@ -115,10 +183,11 @@ export default function ServiceDetailPage() {
             benefits={plan.benefits}
             billing_cycle={cycleText} // '월' 또는 '연'
             onAdd={() => handleAddSubscription(plan.id)}
+            priceVariant="detail"
           />
         );
     })}
-          <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
+          <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 sm:col-span-2 lg:col-span-3">
             <h2 className="font-semibold">주요 혜택</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {Array.from(
@@ -133,11 +202,11 @@ export default function ServiceDetailPage() {
         </div>
         {data.officialUrl && (
           <div className="mt-6">
-            <a href={data.officialUrl} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">공식 페이지로 이동 ↗</a>
+            <a href={data.officialUrl} target="_blank" rel="noreferrer" className="text-fuchsia-300 hover:underline">공식 페이지로 이동 ↗</a>
           </div>
         )}
         {/* 읽기 전용: 가격이력/프로모션/번들 */}
-        <div className="mt-8 grid md:grid-cols-3 gap-6">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
             <h2 className="font-semibold">가격 이력</h2>
             {priceHistory.length === 0 ? (
@@ -209,7 +278,7 @@ export default function ServiceDetailPage() {
                   } catch (_) {}
                   setOpen(false);
                 }}
-                className="px-4 py-2 rounded-2xl bg-cyan-400 text-slate-900 font-semibold hover:opacity-90"
+                className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95"
               >
                 추가
               </button>
@@ -217,7 +286,35 @@ export default function ServiceDetailPage() {
           </div>
         </div>
       )}
-    </div>
-  </div>
+      {noteOpen && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setNoteOpen(false)} />
+          <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 p-6 ring-1 ring-white/10">
+            <h3 className="text-lg font-semibold">메모</h3>
+            <p className="mt-1 text-slate-400 text-sm">서비스에 대한 개인 메모를 저장합니다. 로컬에만 보관됩니다.</p>
+            <textarea
+              value={noteText}
+              onChange={(e)=> setNoteText(e.target.value)}
+              rows={8}
+              className="mt-3 w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-slate-100 outline-none focus:ring-2 focus:ring-fuchsia-400"
+              placeholder="예: 프리미엄 요금제 써보기. 다음 결제일 전 해지 예정."
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setNoteOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">닫기</button>
+              <button
+                onClick={() => { try { setNote(service?.id, noteText); } catch (_) {} setNoteOpen(false); }}
+                className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95"
+              >저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Toast */}
+      {toastMsg && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-fuchsia-600/90 text-slate-50 shadow-lg z-50" role="status" aria-live="polite">
+          {toastMsg}
+        </div>
+      )}
+    </SidebarLayout>
   );
 }
