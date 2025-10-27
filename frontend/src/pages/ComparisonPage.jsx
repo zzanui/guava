@@ -26,10 +26,24 @@ export default function ComparisonPage() {
       try {
         if (ids.length > 0) {
           const data = await getComparisonApi(ids);
+          // 가격 파싱 보강: 숫자/통화 문자열/대체 필드 지원
           const mapped = (data || []).map((s) => {
-            const prices = Array.isArray(s.plans) ? s.plans.map((p)=> Number(p.price||0)) : [];
+            const prices = Array.isArray(s.plans)
+              ? s.plans
+                  .map((p) => {
+                    const raw = p.price ?? p.price_value ?? p.regular ?? null;
+                    const num = Number(String(raw).toString().replace(/[^0-9.]/g, ""));
+                    return Number.isFinite(num) && num > 0 ? num : null;
+                  })
+                  .filter((v) => v !== null)
+              : [];
             const minPrice = prices.length ? Math.min(...prices) : 0;
-            const benefits = Array.from(new Set((s.plans||[]).flatMap((p)=> String(p.benefits||"").split(',').map(v=>v.trim()).filter(Boolean))));
+            const benefits = Array.from(
+              new Set(
+                (s.plans || [])
+                  .flatMap((p) => String(p.benefits || "").split(',').map((v) => v.trim()).filter(Boolean))
+              )
+            );
             return {
               name: s.name,
               regular: minPrice,
@@ -38,13 +52,30 @@ export default function ComparisonPage() {
               benefits,
             };
           });
-          if (!cancelled) setRows(mapped);
+          // API가 빈 배열을 반환해도 폴백 실행
+          if (!cancelled) {
+            if (mapped.length === 0) {
+              const fallback = await getComparisonMock({ sort });
+              setRows(fallback);
+            } else {
+              setRows(mapped);
+            }
+          }
         } else {
           const data = await getComparisonMock({ sort });
           if (!cancelled) setRows(data);
         }
       } catch (e) {
-        if (!cancelled) setError("비교 데이터를 불러오는 중 오류가 발생했어요.");
+        // 서버 비교/상세 API가 실패할 경우 목업 데이터로 폴백
+        try {
+          const data = await getComparisonMock({ sort });
+          if (!cancelled) {
+            setRows(data);
+            setError("");
+          }
+        } catch (_) {
+          if (!cancelled) setError("비교 데이터를 불러오는 중 오류가 발생했어요.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

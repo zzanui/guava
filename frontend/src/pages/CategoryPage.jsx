@@ -285,7 +285,24 @@ export default function CategoryPage() {
               return (
                 <div
                   key={s.id}
-                  className={`rounded-2xl bg-slate-900/60 p-5 ring-1 ${checked ? 'ring-fuchsia-500' : 'ring-white/10'} shadow-lg transition`}
+                  className={`rounded-2xl bg-slate-900/60 p-5 ring-1 ${checked ? 'ring-fuchsia-500' : 'ring-white/10'} shadow-lg transition cursor-pointer hover:bg-slate-900/70`}
+                  onClick={() => {
+                    const idStr = String(s.id);
+                    setSelected((prev) => {
+                      if (prev[idStr]) {
+                        const next = { ...prev };
+                        delete next[idStr];
+                        return next;
+                      }
+                      const count = Object.values(prev).filter(Boolean).length;
+                      if (count >= MAX_SELECT) {
+                        setHint(`최대 ${MAX_SELECT}개까지 선택할 수 있어요.`);
+                        setTimeout(() => setHint(""), 1800);
+                        return prev;
+                      }
+                      return { ...prev, [idStr]: true };
+                    });
+                  }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -296,7 +313,7 @@ export default function CategoryPage() {
                           <div className="h-7 w-7 rounded bg-white/10 flex items-center justify-center text-xs text-slate-300">{(s.name || '?').slice(0,1)}</div>
                         )}
                         {s.id ? (
-                          <Link to={`/services/${s.id}`} className="text-xl font-bold truncate hover:underline" title={s.name}>
+                          <Link to={`/services/${s.id}`} className="text-xl font-bold truncate hover:underline" title={s.name} onClick={(e)=> e.stopPropagation()}>
                             {s.name}
                           </Link>
                         ) : (
@@ -356,15 +373,16 @@ export default function CategoryPage() {
                           });
                         }}
                         aria-label="비교 대상 선택"
+                        onClick={(e)=> e.stopPropagation()}
                       />
                     </div>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    {s.id && <Link to={`/services/${s.id}`} className="text-fuchsia-300 hover:underline text-sm">상세 보기</Link>}
+                    {s.id && <Link to={`/services/${s.id}`} className="text-fuchsia-300 hover:underline text-sm" onClick={(e)=> e.stopPropagation()}>상세 보기</Link>}
                     {s.id && (
                       <button
                         type="button"
-                        onClick={() => openAdd(s.id, s.name)}
+                        onClick={(e) => { e.stopPropagation(); openAdd(s.id, s.name); }}
                         className="px-3 py-1 rounded-xl btn-primary text-slate-50 whitespace-nowrap text-sm"
                       >
                         구독목록 추가
@@ -476,7 +494,7 @@ export default function CategoryPage() {
                 disabled={selectedIds.length < 2}
                 onClick={()=> navigate(`/compare-cards?ids=${selectedIds.join(',')}`)}
                 className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
-              >카드 비교하기</button>
+              >가격 비교하기</button>
             </div>
           </div>
         </div>

@@ -264,7 +264,7 @@ export default function AllServicesPage() {
                           ) : (
                             <div className="h-7 w-7 rounded bg-white/10 flex items-center justify-center text-xs text-slate-300">{(s.name || '?').slice(0,1)}</div>
                           )}
-                          <div className="text-xl font-bold truncate">{s.name}</div>
+                          <Link to={`/services/${s.id}`} onClick={(e)=> e.stopPropagation()} className="text-xl font-bold truncate hover:underline" title={s.name}>{s.name}</Link>
                         </div>
                         <div className="text-slate-400 text-sm truncate mt-1">{s.category || '-'}</div>
                       </div>
@@ -352,7 +352,7 @@ export default function AllServicesPage() {
                   disabled={selectedIds.length < 2}
                   onClick={()=> nav(`/compare-cards?ids=${selectedIds.join(',')}`)}
                   className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
-                >카드 비교하기</button>
+                >가격 비교하기</button>
               </div>
             </div>
           </div>

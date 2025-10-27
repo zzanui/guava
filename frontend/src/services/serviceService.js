@@ -4,12 +4,27 @@ import api from "./api";
 // 메모리 캐시: 간단한 런타임 캐시로 동일 세션 내 중복 호출 방지
 const detailCache = new Map(); // key: serviceId(string) -> detail object
 
-export const getServices = async ({ q, category, minPrice, maxPrice } = {}) => {
+export const getServices = async ({ q, category, categories, minPrice, maxPrice, sort } = {}) => {
   const params = {};
-  if (category) params.category = category;
-  if (q) params.name = q; // backend filters: name icontains
-  if (typeof minPrice === "number") params.price_min = minPrice;
-  if (typeof maxPrice === "number") params.price_max = maxPrice;
+  // 검색어
+  if (q) params.q = q;
+  // 카테고리: 단일/다중 모두 허용 → 백엔드 'categories'
+  const catList = [];
+  if (Array.isArray(categories)) catList.push(...categories.map(String).filter(Boolean));
+  if (category) catList.push(String(category));
+  if (catList.length > 0) params.categories = catList.join(',');
+  // 가격 범위: 백엔드 'min_price'/'max_price'
+  if (typeof minPrice === "number") params.min_price = minPrice;
+  if (typeof maxPrice === "number") params.max_price = maxPrice;
+  // 정렬: price/name 만 지원
+  if (typeof sort === "string" && sort) {
+    let s;
+    if (sort === "priceAsc" || sort === "price") s = "price";
+    else if (sort === "priceDesc") s = "-price";
+    else if (sort === "nameAsc" || sort === "name") s = "name";
+    else if (sort === "nameDesc") s = "-name";
+    if (s) params.sort = s;
+  }
   const response = await api.get("/api/services/", { params });
   return response.data;
 };
@@ -46,7 +61,30 @@ export const getServiceDetail = async (serviceId) => {
 
 export const getComparison = async (ids = []) => {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  const params = { ids: ids.join(",") };
-  const { data } = await api.get("/api/services/compare/", { params });
-  return Array.isArray(data) ? data : [];
+  // 백엔드 호환: 숫자만 정규화하고 plan_id/ids 모두 전송 (최대 5개)
+  const normalized = ids
+    .map((v) => Number(String(v).trim()))
+    .filter((n) => Number.isFinite(n))
+    .slice(0, 5);
+  const joined = normalized.join(",");
+  if (!joined) return [];
+
+  const params = { plan_id: joined, ids: joined };
+  try {
+    const { data } = await api.get("/api/services/compare/", { params });
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    // 서버 비교 API가 4xx/5xx로 실패 시 폴백: 개별 상세를 병렬 호출하여 조합
+    try {
+      const results = await Promise.allSettled(
+        normalized.map((id) => api.get(`/api/services/${id}/`).then((r) => r.data))
+      );
+      const ok = results
+        .filter((r) => r.status === "fulfilled")
+        .map((r) => r.value);
+      return ok;
+    } catch (_) {
+      throw err;
+    }
+  }
 };
