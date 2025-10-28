@@ -238,12 +238,14 @@ export default function HomePage() {
 }
 
 function Feature({ title, desc }) {
+  // 제목에 따라 목적지 경로를 매핑한다.
+  const to = title === "가격 한눈에" ? "/services" : "/mypage";
   return (
     <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
       <div className="mb-2 h-10 w-10 rounded-xl" style={{ backgroundColor: "rgba(240,147,251,0.2)", boxShadow: "inset 0 0 0 1px rgba(240,147,251,0.4)" }} />
       <div className="font-semibold text-lg">{title}</div>
       <p className="mt-1 text-slate-400">{desc}</p>
-      <Link to="/compare" className="inline-block mt-3 text-fuchsia-300 hover:underline">
+      <Link to={to} className="inline-block mt-3 text-fuchsia-300 hover:underline">
         자세히 보기 →
       </Link>
     </div>

@@ -133,7 +133,7 @@ console.log(results.map(r => ({
                     {s.next_payment_date && (
                       <span className="whitespace-nowrap">다음 결제일: {s.next_payment_date}</span>
                     )}
-                    {s.custom_memo && (
+                    {Boolean((s.custom_memo || "").trim()) && (
                       <span className="truncate max-w-[40ch]">메모: {s.custom_memo}</span>
                     )}
                   </div>
