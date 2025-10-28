@@ -8,6 +8,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     plan_service_name = serializers.SerializerMethodField()
     plan_name = serializers.SerializerMethodField()
     plan_price = serializers.SerializerMethodField()
+    plan_billing_cycle = serializers.SerializerMethodField()
 
     def get_plan_service_category(self, obj):
         """안전하게 category 반환"""
@@ -44,6 +45,16 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         except Exception as e:
             print(f"⚠️ Error getting plan price for subscription {obj.id}: {e}")
         return 0
+    
+    def get_plan_billing_cycle(self, obj):
+        """안전하게 plan billing_cycle 반환"""
+        try:
+            if obj.plan:
+                return obj.plan.billing_cycle
+        except Exception as e:
+            print(f"⚠️ Error getting plan billing_cycle for subscription {obj.id}: {e}")
+        return 0
+
     class Meta:
         model = Subscription
         # API를 통해 보여줄 필드    목록
@@ -54,6 +65,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'plan_service_name',  # 2번
             'plan_service_category',  # 1번 (차트 문제 해결!)
             'plan_price',  # 4번
+            'plan_billing_cycle',  # 5번
             'status',
             'start_date',
             'next_payment_date',
