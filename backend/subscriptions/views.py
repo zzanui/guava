@@ -35,7 +35,10 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             # 스키마 생성 시에는 빈 쿼리셋 반환
             return Subscription.objects.none()
         # 로그인한 본인 것만
-        return Subscription.objects.filter(user=self.request.user)
+        # Subscriptions 테이블과 plan 테이블을 JOIN해서 함께 가져옴
+        results = Subscription.objects.filter(user=self.request.user).select_related('plan', 'plan__service')
+        return results
+        # return Subscription.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         """
@@ -61,10 +64,13 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Response({'count': 0, 'results': [], 'total_price': Decimal('0')})
 
-        queryset = self.filter_queryset(
-            self.get_queryset().select_related("plan") 
-        )
-        
+        queryset = self.filter_queryset(self.get_queryset())
+        for sub in queryset:
+            print(f"=== Subscription {sub.id} ===")
+            print(f"Plan: {sub.plan}")
+            print(f"Service: {sub.plan.service if sub.plan else None}")
+            print(f"Category: {sub.plan.service.category if (sub.plan and sub.plan.service) else None}")
+
         # price_override가 있으면 그 값을, 없으면 plan.price를 합산
         total_price = queryset.aggregate(
             total=Sum(Coalesce('price_override', 'plan__price',
@@ -72,6 +78,9 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         )['total'] or Decimal('0')
 
         serializer = self.get_serializer(queryset, many=True)
+        # ⭐ Serializer 결과 확인
+        print(f"=== Serialized data ===")
+        print(serializer.data)
         return Response({
             'count': queryset.count(),
             'results': serializer.data,

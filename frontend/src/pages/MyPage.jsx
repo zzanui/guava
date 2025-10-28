@@ -53,12 +53,22 @@ export default function MyPage() {
           setServiceIdByName(idMap);
           // 카테고리별 집계 (월 기준): price_override > plan_price
           const byCat = new Map();
+
           for (const it of results) {
             const cat = String(it.plan_service_category || it.category || it.plan_category || "기타");
             const amount = Number(it.price_override ?? it.plan_price ?? 0);
             byCat.set(cat, (byCat.get(cat) || 0) + amount);
           }
           setCategoryAgg(Array.from(byCat, ([category, amount]) => ({ category, amount })));
+          console.log('=== categoryAgg 데이터 ===');
+console.log(Array.from(byCat, ([category, amount]) => ({ category, amount })));
+console.log('=== 원본 results ===');
+console.log(results.map(r => ({
+  id: r.id,
+  category: r.plan_service_category,
+  name: r.plan_service_name
+})));
+
         }
       } catch (_) {
         if (!cancelled) setError("구독 정보를 불러오지 못했습니다.");

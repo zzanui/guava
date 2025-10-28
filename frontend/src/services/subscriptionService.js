@@ -3,6 +3,12 @@ import api from "./api";
 
 export const getSubscriptions = async () => {
   const response = await api.get(`/api/my/subscriptions/`);
+  // ✅ 올바른 접근
+  console.log('=== 전체 응답 ===');
+  console.log(response.data);
+
+  console.log('=== plan_service_category ===');
+  console.log(response.data.results[0]?.plan_service_category);  // ← results 추가!
   return response.data;
 };
 
