@@ -114,8 +114,21 @@ export default function MyPage() {
           <ul className="divide-y divide-white/10 rounded-2xl bg-slate-900/60 ring-1 ring-white/10">
             {subs.map((s) => (
               <li key={s.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-3 px-4">
-                <div className="font-medium truncate">{`${s.plan_service_name || ""} ${s.plan_name || ""}`.trim()}</div>
-                <div className="flex items-center gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{`${s.plan_service_name || ""} ${s.plan_name || ""}`.trim()}</div>
+                  <div className="mt-1 text-xs text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
+                    {s.start_date && (
+                      <span className="whitespace-nowrap">시작일: {s.start_date}</span>
+                    )}
+                    {s.next_payment_date && (
+                      <span className="whitespace-nowrap">다음 결제일: {s.next_payment_date}</span>
+                    )}
+                    {s.custom_memo && (
+                      <span className="truncate max-w-[40ch]">메모: {s.custom_memo}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="text-slate-300 whitespace-nowrap">₩ {Number(s.price_override ?? s.plan_price ?? 0).toLocaleString()}</div>
                   <button
                     onClick={async () => {

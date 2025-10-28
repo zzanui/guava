@@ -24,6 +24,12 @@ export default function ServiceDetailPage() {
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [addStep, setAddStep] = useState("select"); // select | details
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [nextPaymentDate, setNextPaymentDate] = useState("");
+  const [customMemo, setCustomMemo] = useState("");
   const [priceHistory, setPriceHistory] = useState([]);
   const [promos, setPromos] = useState([]);
   const [bundles, setBundles] = useState([]);
@@ -88,18 +94,52 @@ export default function ServiceDetailPage() {
   if (loading) return <div>로딩 중...</div>;
   if (error) return <div>{error}</div>;
   if (!service) return <div>서비스 정보가 없습니다.</div>;
-  const handleAddSubscription = async (planId) => {
+  const openAdd = async (planId) => {
     if (!isAuthenticated) {
       alert("로그인이 필요한 서비스입니다.");
       navigate("/login", { replace: false, state: { from: location } });
       return;
     }
+    setSelectedPlanId(planId || null);
+    // 기본값: 오늘 날짜, 주기에 따른 다음 결제일 자동 채움
+    try {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const start = `${yyyy}-${mm}-${dd}`;
+      setStartDate(start);
+      const plan = (service?.plans || []).find((p) => p.id === planId);
+      const cycle = plan?.billing_cycle || "month";
+      const next = (() => {
+        const base = new Date(start);
+        if (cycle === "year") {
+          return `${base.getFullYear() + 1}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
+        }
+        const y = base.getFullYear();
+        const m = base.getMonth();
+        const d = base.getDate();
+        const nx = new Date(y, m + 1, d);
+        return `${nx.getFullYear()}-${String(nx.getMonth() + 1).padStart(2, "0")}-${String(nx.getDate()).padStart(2, "0")}`;
+      })();
+      setNextPaymentDate(next);
+    } catch (_) {
+      setStartDate("");
+      setNextPaymentDate("");
+    }
+    setCustomMemo("");
+    setAddStep("select");
+    setAddOpen(true);
+  };
+
+  const handleAddSubscription = async () => {
+    if (!selectedPlanId) return;
     try {
       // 현재 내 구독 리스트 조회 후 중복 확인
       try {
         const my = await getSubscriptions();
         const items = Array.isArray(my?.results) ? my.results : [];
-        const already = items.some((s)=> String(s.plan) === String(planId));
+        const already = items.some((s)=> String(s.plan) === String(selectedPlanId));
         if (already) {
           const ok = window.confirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
           if (!ok) return;
@@ -107,18 +147,23 @@ export default function ServiceDetailPage() {
       } catch (_) {}
 
       // API 호출 (인증 토큰은 api.js가 자동으로 처리)
-      await addSubscription(planId);
+      await addSubscription(selectedPlanId, {
+        start_date: startDate,
+        next_payment_date: nextPaymentDate,
+        custom_memo: customMemo,
+      });
 
       // 3. 성공 피드백 (하이라이트 토스트)
       setToastMsg("구독 서비스가 추가되었습니다.");
       setTimeout(()=> setToastMsg(""), 1800);
+      setAddOpen(false);
 
     } catch (error) {
       console.error("구독 추가 실패:", error);
       const serverMsg = error?.response?.data ? JSON.stringify(error.response.data) : null;
       // 서버 실패 시 로컬에만 저장하는 폴백
       try {
-        const p = Array.isArray(service?.plans) ? service.plans.find((x)=> x.id === planId) : null;
+        const p = Array.isArray(service?.plans) ? service.plans.find((x)=> x.id === selectedPlanId) : null;
         const priceValue = Number(String(p?.price || "").toString().replace(/[^0-9.]/g, "")) || 0;
         addLocalSubscription({ name: `${service?.name || ""} ${p?.plan_name || ""}`.trim(), priceValue });
         setToastMsg(serverMsg ? "서버 오류로 로컬에만 추가되었습니다." : "서버 오류로 로컬에만 추가되었습니다.");
@@ -182,7 +227,7 @@ export default function ServiceDetailPage() {
             price={formattedPrice} // 가공된 가격 문자열
             benefits={plan.benefits}
             billing_cycle={cycleText} // '월' 또는 '연'
-            onAdd={() => handleAddSubscription(plan.id)}
+            onAdd={() => openAdd(plan.id)}
             priceVariant="detail"
           />
         );
@@ -254,35 +299,97 @@ export default function ServiceDetailPage() {
           </div>
         </div>
       </div>
-      {open && (
+      {addOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setAddOpen(false)} />
           <div className="relative w-full max-w-md rounded-2xl bg-slate-900 p-6 ring-1 ring-white/10">
             <h3 className="text-lg font-semibold">내 구독에 추가</h3>
-            <p className="mt-2 text-slate-300">{data.name} · {selectedPlan}</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
-              <button
-                onClick={async () => {
-                  const p = data.plans.find((x)=> x.name===selectedPlan);
-                  if (!p?.id) {
-                    // plan id가 없으면 추가 불가
-                    setOpen(false);
-                    return;
-                  }
-                  try {
-                    await addSubscription(p.id);
-                    // 서버 추가 성공 시, 마이페이지(로컬 저장 기반)도 즉시 반영되도록 동기 저장
-                    const priceValue = Number(String(p.price || "").replace(/[^0-9.]/g, "")) || 0;
-                    addLocalSubscription({ name: `${data.name} ${p.name}`, priceValue });
-                  } catch (_) {}
-                  setOpen(false);
-                }}
-                className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95"
-              >
-                추가
-              </button>
-            </div>
+            <p className="mt-2 text-slate-300">{service?.name}</p>
+            {addStep === "select" && (
+              <>
+                <div className="mt-4 max-h-64 overflow-auto rounded-xl bg-slate-950/40 p-3 ring-1 ring-white/10">
+                  {Array.isArray(service?.plans) && service.plans.length > 0 ? (
+                    <ul className="space-y-2">
+                      {service.plans.map((p) => {
+                        const cycleText = p.billing_cycle === 'month' ? '월' : p.billing_cycle === 'year' ? '연' : (p.cycle || '');
+                        const priceNum = Number(p.price || p.price_value || 0);
+                        const priceText = Number.isFinite(priceNum) ? `₩ ${priceNum.toLocaleString()}` : String(p.price || '');
+                        return (
+                          <li key={p.id} className="flex items-center gap-3">
+                            <input
+                              id={`plan-${p.id}`}
+                              type="radio"
+                              name="plan"
+                              className="accent-fuchsia-500"
+                              checked={selectedPlanId === p.id}
+                              onChange={() => setSelectedPlanId(p.id)}
+                            />
+                            <label htmlFor={`plan-${p.id}`} className="flex-1 cursor-pointer flex items-center justify-between gap-3">
+                              <span className="truncate">{p.plan_name || p.name}</span>
+                              <span className="text-slate-300 whitespace-nowrap">{cycleText} {priceText}</span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="text-slate-400">선택 가능한 플랜이 없어요.</div>
+                  )}
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button onClick={() => setAddOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
+                  <button
+                    onClick={() => {
+                      if (!selectedPlanId) return;
+                      // startDate/nextPaymentDate는 openAdd에서 기본값 설정됨
+                      setAddStep("details");
+                    }}
+                    disabled={!selectedPlanId}
+                    className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
+                  >
+                    다음
+                  </button>
+                </div>
+              </>
+            )}
+
+            {addStep === "details" && (
+              <>
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label className="text-sm block mb-1">구독 시작일</label>
+                    <input type="date" value={startDate} onChange={(e)=> setStartDate(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="text-sm block mb-1">다음 결제일</label>
+                    <input type="date" value={nextPaymentDate} onChange={(e)=> setNextPaymentDate(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="text-sm block mb-1">메모</label>
+                    <textarea rows={4} value={customMemo} onChange={(e)=> setCustomMemo(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 p-3" placeholder="예: 프리미엄 1개월만 사용 후 해지" />
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-between gap-2">
+                  <button onClick={() => setAddStep("select")} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">이전</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => setAddOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
+                    <button
+                      onClick={() => {
+                        if (!startDate || !nextPaymentDate) {
+                          alert("시작일과 다음 결제일을 입력해주세요.");
+                          return;
+                        }
+                        handleAddSubscription();
+                      }}
+                      disabled={!selectedPlanId}
+                      className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
+                    >
+                      추가
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

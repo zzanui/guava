@@ -22,7 +22,11 @@ export const addSubscription = async (
     custom_memo = "",
   } = {}
 ) => {
-  const payload = { plan: Number(planId), start_date :"2025-10-21", next_payment_date :"2025-11-21", custom_memo : "test"};
+  const payload = { plan: Number(planId) };
+  if (start_date) payload.start_date = start_date;
+  if (next_payment_date) payload.next_payment_date = next_payment_date;
+  // 백엔드가 null을 허용하더라도, 빈 값은 공백 문자열로 정규화
+  if (custom_memo !== undefined) payload.custom_memo = custom_memo ?? "";
   if (typeof price_override === "number") payload.price_override = price_override;
   return api.post(`/api/my/subscriptions/`, payload);
 };

@@ -232,16 +232,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-slate-400 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-          <div>© {new Date().getFullYear()} GUAVA. All rights reserved.</div>
-          <div className="flex gap-4">
-            <Link to="/terms" className="hover:text-slate-200">이용약관</Link>
-            <Link to="/privacy" className="hover:text-slate-200">개인정보처리방침</Link>
-          </div>
-        </div>
-      </footer>
+      {/* 전역 Footer 사용으로 제거됨 */}
     </div>
   );
 }

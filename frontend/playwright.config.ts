@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 30 * 1000,
   retries: 0,
   use: {
-    baseURL: 'http://13.209.4.84:8000',
+    baseURL: 'http://13.209.43.2:8000',
     trace: 'on-first-retry',
     headless: true,
   },

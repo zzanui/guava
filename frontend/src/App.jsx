@@ -18,12 +18,14 @@ import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import AllServicesPage from "./pages/AllServicesPage.jsx";
 import ContactPage from "./pages/ContactPage.jsx";
 import NoticesPage from "./pages/NoticesPage.jsx";
+import Footer from "./components/Footer.jsx";
 
 function App() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <Header />
-      <Routes>
+      <main className="flex-1">
+        <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -56,7 +58,9 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/notices" element={<NoticesPage />} />
         <Route path="*" element={<h3>404 - 페이지를 찾을 수 없습니다</h3>} />
-      </Routes>
+        </Routes>
+      </main>
+      <Footer />
     </div>
   );
 }
