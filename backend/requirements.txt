@@ -1,40 +1,29 @@
-asgiref==3.9.2
-attrs==25.3.0
-Brotli==1.1.0
-cffi==2.0.0
-cssselect2==0.8.0
-Django==4.2.24
-django-cors-headers==4.9.0
-django-environ==0.12.0
-django-extensions==4.1
-django-filter==25.1
-djangorestframework==3.16.1
-djangorestframework-jwt-5==1.13.0
-djangorestframework_simplejwt==5.5.1
-drf-nested-routers==0.95.0
-drf-spectacular==0.28.0
-fonttools==4.60.1
-inflection==0.5.1
-jsonschema==4.25.1
-jsonschema-specifications==2025.9.1
-mysqlclient==2.2.7
-pillow==11.3.0
-pycparser==2.23
-pydyf==0.11.0
-PyJWT==2.10.1
-pyphen==0.17.2
-python-dateutil==2.9.0.post0
-PyYAML==6.0.3
-referencing==0.36.2
-rpds-py==0.27.1
-six==1.17.0
-slim==0.1
+# --- Django core ---
+Django==5.2.1
+asgiref==3.9.1
 sqlparse==0.5.3
-tinycss2==1.4.0
-tinyhtml5==2.0.0
-typing_extensions==4.15.0
 tzdata==2025.2
+
+# --- REST & Auth ---
+djangorestframework==3.16.1
+django-filter==25.1
+djangorestframework_simplejwt==5.5.1
+drf-spectacular==0.28.0
+drf-nested-routers==0.95.0     # ← 올바른 패키지 (기존 django-rest-framework-nested 제거)
+
+# --- Config/CORS/Utils ---
+django-environ==0.12.0
+django-cors-headers==4.9.0
+django-extensions==3.2.3
+PyJWT==2.10.1
+python-dateutil>=2.9.0          # ← 누락되어 에러났던 모듈
+typing_extensions==4.14.1
 uritemplate==4.2.0
-weasyprint==66.0
-webencodings==0.5.1
-zopfli==0.2.3.post1
+
+# --- DB ---
+mysqlclient==2.2.7              # (PyMySQL은 제거) 
+
+# --- PDF (WeasyPrint) ---
+weasyprint>=60.0                # 사용 중이므로 포함 (시스템 라이브러리는 Dockerfile에서 설치)
+
+gunicorn>=21.2

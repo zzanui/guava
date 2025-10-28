@@ -33,9 +33,9 @@ AUTHENTICATION_BACKENDS = [
 SECRET_KEY = 'django-insecure-^&k6*!n=6zhpj*+1d8n4yp@#rghx^@8po8q76ew86ke%t4)hsl'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 
 # Application definition
@@ -141,7 +141,10 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))  # 로컬/컨테이너에�
 
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost",
     "http://localhost:5173",
+    "http://localhost:80",
+    "http://<your-domain>", # 실제 도메인으로 변경
 ]
 
 DATABASES = {
@@ -196,6 +199,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# /app/static 폴더가 없으면 경고 나므로 존재할 때만 추가
+STATICFILES_DIRS = [p for p in [BASE_DIR / "static"] if p.exists()]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

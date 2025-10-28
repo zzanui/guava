@@ -1,4 +1,5 @@
 # subscriptions/views.py
+from math import ceil
 import csv
 from datetime import date
 from dateutil.relativedelta import relativedelta
@@ -54,11 +55,13 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             next_payment = today + relativedelta(months=1)
 
         # custom_memo는 일단 빈 값으로(추후 마이 페이지에서 수정가능)
+        # 25.10.28 은찬 수정: request에서 custom_memo를 받아오도록 변경
+        memo = serializer.validated_data.get('custom_memo', '') or ''
         serializer.save(
             user=self.request.user,
             start_date=today,
             next_payment_date=next_payment,
-            custom_memo="")
+            custom_memo=memo)
 
     def list(self, request, *args, **kwargs):
         if getattr(self, 'swagger_fake_view', False):
@@ -71,11 +74,17 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             print(f"Service: {sub.plan.service if sub.plan else None}")
             print(f"Category: {sub.plan.service.category if (sub.plan and sub.plan.service) else None}")
 
-        # price_override가 있으면 그 값을, 없으면 plan.price를 합산
-        total_price = queryset.aggregate(
-            total=Sum(Coalesce('price_override', 'plan__price',
-                               output_field=models.DecimalField(max_digits=10, decimal_places=2)))
-        )['total'] or Decimal('0')
+        total_price = Decimal('0')  # ← 총합 초기화
+
+        for sub in queryset:
+            # 기본 가격 결정 (price_override > plan.price)
+            price = sub.price_override or (sub.plan.price if sub.plan else Decimal('0'))
+
+            # billing_cycle이 year이면 월 단위 환산
+            if sub.plan and getattr(sub.plan, 'billing_cycle', None) == 'year':
+                price = price / Decimal('12')  # ← 수정된 핵심 부분
+
+            total_price += price  # 총합 누적
 
         serializer = self.get_serializer(queryset, many=True)
         # ⭐ Serializer 결과 확인
@@ -124,16 +133,19 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         """
         # 1. 쿼리셋과 총액 계산 (기존 list 뷰 로직 재사용)
         queryset = self.get_queryset().select_related("plan__service")
+        
         total_price = queryset.aggregate(
             total=Sum(Coalesce('price_override', 'plan__price',
                                output_field=models.DecimalField(max_digits=10, decimal_places=2)))
         )['total'] or Decimal('0')
 
+
         # 2. 템플릿에 전달할 데이터(context) 준비
+        #121028은찬 : 소수점자리는 가독성을 떨어뜨리기 때문에 올림 처리
         context = {
             'user': request.user,
             'subscriptions': queryset,
-            'total_price': total_price
+            'total_price': ceil(total_price)
         }
 
         # 3. HTML 템플릿을 context 데이터와 "구워서" 문자열로 만듭니다.
