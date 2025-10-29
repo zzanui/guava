@@ -12,6 +12,7 @@ import ServiceDetailPage from "./pages/ServiceDetailPage.jsx";
 import PromotionsPage from "./pages/PromotionsPage.jsx";
 import BundlesPage from "./pages/BundlesPage.jsx";
 import Header from "./components/Header.jsx";
+import ScrollToTop from "./components/ScrollToTop.jsx";
 import CategoryPage from "./pages/CategoryPage.jsx";
 import FindIdPage from "./pages/FindIdPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
@@ -24,6 +25,7 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <Header />
+      <ScrollToTop />
       <main className="flex-1">
         <Routes>
         <Route path="/" element={<HomePage />} />
@@ -48,7 +50,7 @@ function App() {
             </RequireAuth>
           }
         />
-        <Route path="/compare" element={<ComparisonPage />} />
+        {/** 비교 단독 진입 라우트 제거 (홈 하단 버튼 이동 변경) */}
         <Route path="/services" element={<AllServicesPage />} />
         <Route path="/compare-cards" element={<ComparisonPage />} />
         <Route path="/services/:id" element={<ServiceDetailPage />} />

@@ -46,7 +46,7 @@ export default function SubscriptionListPage() {
             price={`₩ ${Number(sub.price_override ?? sub.plan_price ?? 0).toLocaleString()}`}
             startDate={sub.start_date}
             nextPaymentDate={sub.next_payment_date}
-            memo={sub.custom_memo}
+            memo={(sub.custom_memo || "").trim()}
             onDelete={async () => {
               const ok = window.confirm("정말 삭제하시겠습니까?");
               if (!ok) return;
