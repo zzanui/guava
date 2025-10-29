@@ -44,6 +44,7 @@ export default function SubscriptionListPage() {
             key={sub.id}
             name={`${sub.plan_service_name || ""} ${sub.plan_name || ""}`.trim()}
             price={`₩ ${Number(sub.price_override ?? sub.plan_price ?? 0).toLocaleString()}`}
+            billingCycle={sub.plan_billing_cycle}
             startDate={sub.start_date}
             nextPaymentDate={sub.next_payment_date}
             memo={(sub.custom_memo || "").trim()}
