@@ -1,21 +1,23 @@
 import { useNavigate } from "react-router-dom";
 
-export default function ServiceCard({ id, name, price, tags = [], benefits, billing_cycle, icon, nextBilling, onAdd, priceVariant = "min" }) {
+export default function ServiceCard({ id, name, price, tags = [], benefits, billing_cycle, icon, nextBilling, onAdd, priceVariant = "min", actionLabel = "추가", selectable = false, selected = false }) {
   const navigate = useNavigate();
-  const canNavigate = Boolean(id);
+  const canNavigate = Boolean(id) && !selectable; // 선택 모드가 아니면 상세로 이동 허용
   return (
     <div
-      className="rounded-2xl bg-slate-900/60 p-5 ring-1 ring-white/10 shadow-lg cursor-pointer hover:bg-slate-900/70 transition"
-      role={canNavigate ? "button" : undefined}
-      tabIndex={canNavigate ? 0 : undefined}
+      className={`rounded-2xl p-5 ring-1 shadow-lg transition cursor-pointer ${selected ? 'bg-slate-900/70 ring-fuchsia-500' : 'bg-slate-900/60 ring-white/10 hover:bg-slate-900/70'}`}
+      role={(canNavigate || selectable) ? "button" : undefined}
+      tabIndex={(canNavigate || selectable) ? 0 : undefined}
       onClick={() => {
+        if (selectable && onAdd) { onAdd(); return; }
         if (canNavigate) navigate(`/services/${id}`);
       }}
       onKeyDown={(e) => {
-        if (!canNavigate) return;
+        if (!(canNavigate || selectable)) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          navigate(`/services/${id}`);
+          if (selectable && onAdd) { onAdd(); return; }
+          if (canNavigate) navigate(`/services/${id}`);
         }
       }}
     >
@@ -40,13 +42,13 @@ export default function ServiceCard({ id, name, price, tags = [], benefits, bill
             )}
           </div>
 
-          {/* '추가' 버튼 (이제 가격 밑으로 이동) */}
+          {/* 액션 버튼 (가격 밑) */}
           {onAdd && (
             <button
               onClick={(e) => { e.stopPropagation(); onAdd(); }}
               className="w-full sm:w-auto px-4 py-2 btn-primary text-slate-50 rounded-lg font-semibold hover:opacity-95 transition"
             >
-              추가
+              {actionLabel}
             </button>
           )}
         </div>
