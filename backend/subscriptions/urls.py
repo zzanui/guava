@@ -7,6 +7,7 @@ from . import views
 router = DefaultRouter()
 # 'subscriptions' 라는 URL 경로에 SubscriptionViewSet을 연결
 router.register(r'subscriptions', SubscriptionViewSet, basename='subscriptions')
+router.register(r'bookmarks', views.BookmarkViewSet, basename='bookmarks')
 
 urlpatterns = [
     path('', include(router.urls)),

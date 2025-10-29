@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Subscription
+from .models import Subscription, Bookmark
 from services.models import Plan
 
 
@@ -76,3 +76,27 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         ]
         # 'user' 필드는 요청 본문(body)으로 받지 않고, 서버에서 자동으로 설정할 것이므로 읽기 전용으로 설정
         read_only_fields = ['user', 'start_date', 'next_payment_date']
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bookmark
+        fields = ['id', 'service', 'memo', 'created_at']
+        read_only_fields = ['user', 'created_at']
+
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        service = attrs.get('service')
+
+        if user and service and Bookmark.objects.filter(user=user, service=service).exists():
+            raise serializers.ValidationError("이미 이 서비스는 북마크되어 있습니다.")
+        return attrs
+
+
+    def create(self, validated_data):
+        # user를 강제로 주입(클라이언트가 user를 못 바꾸게)
+        validated_data['user'] = self.context['request'].user
+        # memo None → '' 정리
+        validated_data['memo'] = (validated_data.get('memo') or '').strip()
+        return super().create(validated_data)
