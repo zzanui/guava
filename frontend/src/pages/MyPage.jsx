@@ -27,6 +27,7 @@ export default function MyPage() {
   const SHOW_TELECOM = false;
   const SHOW_CARDS = false;
   const SHOW_NOTIFICATIONS = false;
+  const SHOW_REPORT_PDF = false; // 일시 숨김 처리 플래그
 
   // 섹션 스크롤을 위한 ref
   const subsRef = useRef(null);
@@ -412,7 +413,9 @@ console.log(results.map(r => ({
         <h2 className="text-2xl font-bold mb-3">구독 서비스 리포트</h2>
         <div className="flex flex-col sm:flex-row gap-4">
           <button onClick={() => handleDownload('csv')} className="flex-1 px-4 py-3 bg-white/10 text-slate-100 rounded-lg font-semibold hover:bg-white/20 transition duration-200">CSV로 내보내기</button>
-          <button onClick={() => handleDownload('pdf')} className="flex-1 px-4 py-3 btn-primary text-slate-50 rounded-lg font-semibold hover:opacity-95 transition duration-200">PDF로 내보내기</button>
+          {SHOW_REPORT_PDF && (
+            <button onClick={() => handleDownload('pdf')} className="flex-1 px-4 py-3 btn-primary text-slate-50 rounded-lg font-semibold hover:opacity-95 transition duration-200">PDF로 내보내기</button>
+          )}
         </div>
       </div>
         </div>
