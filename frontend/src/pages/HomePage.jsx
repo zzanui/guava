@@ -223,14 +223,14 @@ export default function HomePage() {
         <h2 className="text-3xl md:text-4xl font-extrabold leading-tight mb-8">어떻게 이용하나요?</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { step: "1", title: "검색", desc: "원하는 서비스를 검색해요." },
-            { step: "2", title: "추가", desc: "내 구독에 추가해요." },
-            { step: "3", title: "관리", desc: "내 구독을 한곳에서 손쉽게 관리해요." },
+            { step: "1", title: "서비스 검색", desc: "원하는 서비스를 검색해요." },
+            { step: "2", title: "구독 추가", desc: "원하는 서비스를 내 구독에 추가해요." },
+            { step: "3", title: "구독 관리", desc: "내 구독을 한곳에서 손쉽게 관리해요.\n플랜별 비교를 통해 최저 비용을 골라요." },
           ].map((s) => (
             <div key={s.step} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
               <div className="text-fuchsia-400 font-extrabold text-xl">{s.step}</div>
               <div className="mt-2 font-semibold text-lg">{s.title}</div>
-              <p className="mt-1 text-slate-400">{s.desc}</p>
+              <p className="mt-1 text-slate-400 whitespace-pre-line">{s.desc}</p>
             </div>
           ))}
         </div>

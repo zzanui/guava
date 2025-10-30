@@ -1,11 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import CategoryMenu from "./CategoryMenu.jsx";
+import { AuthContext } from "../context/AuthContext.jsx";
 
 export default function NavBar() {
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const auth = useContext(AuthContext);
+  const signedIn = Boolean(auth?.isAuthenticated || localStorage.getItem("access"));
 
   // 라우트 이동 시(특히 카테고리/뒤로가기 등) 헤더 검색 입력 초기화
   useEffect(() => {
@@ -64,6 +67,25 @@ export default function NavBar() {
               <div className="mt-2 rounded-xl ring-1 ring-white/10">
                 <CategoryMenu inlineList />
               </div>
+              <hr className="my-3 border-white/10" />
+              <Link to="/contact" onClick={()=> setMobileOpen(false)} className="block rounded-xl px-3 py-2 hover:bg-white/10">문의</Link>
+              <Link to="/notices" onClick={()=> setMobileOpen(false)} className="block rounded-xl px-3 py-2 hover:bg-white/10">공지사항</Link>
+              {signedIn ? (
+                <>
+                  <Link to="/mypage" onClick={()=> setMobileOpen(false)} className="block rounded-xl px-3 py-2 hover:bg-white/10">마이페이지</Link>
+                  <button
+                    onClick={() => { auth?.logout?.(); setMobileOpen(false); }}
+                    className="w-full text-left block rounded-xl px-3 py-2 hover:bg-white/10"
+                  >
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" onClick={()=> setMobileOpen(false)} className="block rounded-xl px-3 py-2 hover:bg-white/10">로그인</Link>
+                  <Link to="/register" onClick={()=> setMobileOpen(false)} className="block rounded-xl px-3 py-2 btn-primary text-center text-slate-50 font-semibold hover:opacity-95 transition">회원가입</Link>
+                </>
+              )}
             </nav>
           </div>
         </div>

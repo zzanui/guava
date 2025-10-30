@@ -36,7 +36,7 @@ export default function MyPage() {
   const memoRef = useRef(null);
   const reportRef = useRef(null);
 
-  const SCROLL_OFFSET_PX = 120;
+  const SCROLL_OFFSET_PX = 136;
   const scrollToRef = (ref) => {
     if (ref && ref.current) {
       const el = ref.current;
@@ -205,7 +205,7 @@ console.log(results.map(r => ({
       )}
 
       {!loading && !error && subs.length > 0 && (
-        <section className="mb-6">
+        <section className="mb-6 mt-6">
           <h2 className="text-2xl font-bold mb-3">내 구독 리스트</h2>
           <ul className="divide-y divide-white/10 rounded-2xl bg-slate-900/60 ring-1 ring-white/10">
             {subs.map((s) => (
@@ -260,18 +260,9 @@ console.log(results.map(r => ({
 
       {/* 앵커: 구독료 합계 */}
       <section ref={totalRef} className="mb-6 rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 scroll-mt-24">
-        <h2 className="text-2xl font-bold mb-2">구독료 합계</h2>
+        <h2 className="text-2xl font-bold mb-3">구독료 합계</h2>
         <p className="text-2xl font-extrabold">₩ {Number(total || 0).toLocaleString()} / 월</p>
       </section>
-
-      {/* 앵커: 카테고리별 통계 */}
-      <div ref={chartsRef} className="h-px scroll-mt-24" aria-hidden="true" />
-      {categoryAgg.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-2xl font-bold mb-3">카테고리별 통계</h2>
-          <CategoryCostCharts data={categoryAgg} />
-        </section>
-      )}
 
       
 
@@ -310,7 +301,7 @@ console.log(results.map(r => ({
 
       {/* 앵커: 즐겨찾기 */}
       <section ref={bookmarksRef} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 scroll-mt-24">
-        <h2 className="text-2xl font-bold mb-2">즐겨찾기</h2>
+        <h2 className="text-2xl font-bold mb-3">즐겨찾기</h2>
         {bookmarkIds.size === 0 ? (
           <div className="text-slate-300">즐겨찾기한 서비스가 없습니다.</div>
         ) : (
@@ -358,7 +349,7 @@ console.log(results.map(r => ({
       {/* 앵커: 메모 */}
       {/* 메모 목록 */}
       <section ref={memoRef} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 mt-6 scroll-mt-24">
-        <h2 className="text-2xl font-bold mb-2">내 메모</h2>
+        <h2 className="text-2xl font-bold mb-3">내 메모</h2>
         {memoEntries.length === 0 ? (
           <div className="text-slate-300">저장된 메모가 없습니다.</div>
         ) : (
@@ -386,6 +377,15 @@ console.log(results.map(r => ({
         )}
       </section>
 
+      {/* 앵커: 카테고리별 통계 */}
+      <div ref={chartsRef} className="h-px scroll-mt-24" aria-hidden="true" />
+      {categoryAgg.length > 0 && (
+        <section className="mb-6 mt-8">
+          <h2 className="text-2xl font-bold mb-3">카테고리별 통계</h2>
+          <CategoryCostCharts data={categoryAgg} />
+        </section>
+      )}
+
       {SHOW_CARDS && (
         <section className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 mt-6">
           <h2 className="text-2xl font-bold mb-2">카드</h2>
@@ -409,7 +409,7 @@ console.log(results.map(r => ({
       )}
 
       <div ref={reportRef} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 mt-6 scroll-mt-24">
-        <h2 className="text-xl font-bold mb-4">구독 서비스 리포트</h2>
+        <h2 className="text-2xl font-bold mb-3">구독 서비스 리포트</h2>
         <div className="flex flex-col sm:flex-row gap-4">
           <button onClick={() => handleDownload('csv')} className="flex-1 px-4 py-3 bg-white/10 text-slate-100 rounded-lg font-semibold hover:bg-white/20 transition duration-200">CSV로 내보내기</button>
           <button onClick={() => handleDownload('pdf')} className="flex-1 px-4 py-3 btn-primary text-slate-50 rounded-lg font-semibold hover:opacity-95 transition duration-200">PDF로 내보내기</button>
