@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getServices, getServiceDetail } from "../services/serviceService";
 import { getNote } from "../services/localPrefs.js";
-import { listFavorites, addFavorite as addFavoriteApi, removeFavorite as removeFavoriteApi } from "../services/favoritesService.js";
+import { listBookmarks, addBookmark as addBookmarkApi, removeBookmark as removeBookmarkApi } from "../services/bookmarksService.js";
+import { addSubscription, getSubscriptions } from "../services/subscriptionService";
+import useAuth from "../hooks/useAuth";
 
 export default function AllServicesPage() {
   const nav = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth() || {};
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
@@ -18,10 +22,20 @@ export default function AllServicesPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [categories, setCategories] = useState([]); // 전체 데이터에서 채워짐
   const [selectedCategories, setSelectedCategories] = useState([]); // 다중 선택
-  const [onlyFav, setOnlyFav] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState(new Set()); // 서버 동기화 기반
+  const [onlyBookmark, setOnlyBookmark] = useState(false);
+  const [bookmarkIds, setBookmarkIds] = useState(new Set()); // 서버 동기화 기반
   const [inputText, setInputText] = useState("");
   const [toastMsg, setToastMsg] = useState("");
+  // 구독 추가 모달 상태
+  const [addOpen, setAddOpen] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [addPlans, setAddPlans] = useState([]);
+  const [addService, setAddService] = useState({ id: null, name: "" });
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [addStep, setAddStep] = useState("select"); // select | details
+  const [startDate, setStartDate] = useState("");
+  const [nextPaymentDate, setNextPaymentDate] = useState("");
+  const [customMemo, setCustomMemo] = useState("");
   function formatKRW(value) {
     const num = Number(value);
     if (!Number.isFinite(num)) return "-";
@@ -42,7 +56,7 @@ export default function AllServicesPage() {
           const cats = Array.from(new Set(list.map((s) => String(s.category || "").trim()).filter(Boolean))).sort((a,b)=> a.localeCompare(b));
           setCategories(cats);
 
-          // 가격 정보 보강: 각 서비스 상세 플랜에서 최소/최대 가격 계산
+          // 가격 정보 보강: 각 서비스 상세 플랜에서 최소/최대 가격 및 주기 계산
           Promise.allSettled((list || []).map((s) => getServiceDetail(s.id)))
             .then((results) => {
               if (cancelled) return;
@@ -57,26 +71,28 @@ export default function AllServicesPage() {
                   const d = detailById.get(String(item.id));
                   const plans = Array.isArray(d?.plans) ? d.plans : [];
                   if (plans.length === 0) return item;
-                  const prices = plans
+                  const normalized = plans
                     .map((p) => {
                       const raw = p.price ?? p.price_value ?? p.regular ?? null;
                       const num = Number(String(raw).toString().replace(/[^0-9.]/g, ""));
-                      return Number.isFinite(num) && num > 0 ? num : null;
+                      const cycleText = p.billing_cycle === "month" ? "월" : p.billing_cycle === "year" ? "연" : (p.cycle || "");
+                      return Number.isFinite(num) && num > 0 ? { num, cycleText } : null;
                     })
-                    .filter((v) => v !== null);
-                  if (prices.length === 0) return item;
-                  const min = Math.min(...prices);
-                  const max = Math.max(...prices);
-                  return { ...item, min_price: min, max_price: max };
+                    .filter(Boolean);
+                  if (normalized.length === 0) return item;
+                  const min = normalized.reduce((acc, x) => (x.num < acc ? x.num : acc), normalized[0].num);
+                  const max = normalized.reduce((acc, x) => (x.num > acc ? x.num : acc), normalized[0].num);
+                  const cheapest = normalized.sort((a, b) => a.num - b.num)[0];
+                  return { ...item, min_price: min, max_price: max, billing_cycle: cheapest.cycleText };
                 })
               );
             })
             .catch(() => {});
 
-          // 서버 즐겨찾기 초기 로드
-          listFavorites().then((ids) => {
+          // 서버 북마크 초기 로드
+          listBookmarks().then((ids) => {
             if (cancelled) return;
-            setFavoriteIds(new Set((ids || []).map(String)));
+            setBookmarkIds(new Set((ids || []).map(String)));
           }).catch(() => {});
         }
       } catch (e) {
@@ -97,9 +113,9 @@ export default function AllServicesPage() {
       const set = new Set(selectedCategories.map((c)=> String(c).toLowerCase()));
       rows = rows.filter((s)=> set.has(String(s.category||"").toLowerCase()));
     }
-    if (onlyFav) {
-      const favSet = favoriteIds;
-      rows = rows.filter((s)=> favSet.has(String(s.id)));
+    if (onlyBookmark) {
+      const bmSet = bookmarkIds;
+      rows = rows.filter((s)=> bmSet.has(String(s.id)));
     }
     const minV = Number(minPrice);
     const maxV = Number(maxPrice);
@@ -114,7 +130,7 @@ export default function AllServicesPage() {
     else if (sort === "priceDesc") rows = [...rows].sort((a,b)=> Number(b.min_price||0) - Number(a.min_price||0));
     else if (sort === "nameAsc") rows = [...rows].sort((a,b)=> (a.name||'').localeCompare(b.name||''));
     return rows;
-  }, [items, query, selectedCategories, minPrice, maxPrice, sort, onlyFav, favoriteIds]);
+  }, [items, query, selectedCategories, minPrice, maxPrice, sort, onlyBookmark, bookmarkIds]);
 
   const selectedIds = useMemo(() => Object.entries(selected).filter(([, v]) => v).map(([k]) => k), [selected]);
   const selectedNameById = useMemo(() => Object.fromEntries(items.map((s) => [String(s.id), s.name])), [items]);
@@ -127,6 +143,64 @@ export default function AllServicesPage() {
     }
     return acc;
   }, [items]);
+
+  async function openAdd(serviceId, serviceName) {
+    if (!isAuthenticated) {
+      alert("로그인이 필요한 서비스입니다.");
+      nav("/login", { replace: false, state: { from: location } });
+      return;
+    }
+    setAddService({ id: serviceId, name: serviceName });
+    setAddOpen(true);
+    setAddLoading(true);
+    setAddPlans([]);
+    setSelectedPlanId(null);
+    setAddStep("select");
+    setStartDate("");
+    setNextPaymentDate("");
+    setCustomMemo("");
+    try {
+      const detail = await getServiceDetail(serviceId);
+      const plans = Array.isArray(detail?.plans) ? detail.plans : [];
+      setAddPlans(plans);
+    } catch (_) {
+      setAddPlans([]);
+    } finally {
+      setAddLoading(false);
+    }
+  }
+
+  async function confirmAdd() {
+    if (!selectedPlanId) return;
+    if (!startDate || !nextPaymentDate) {
+      alert("시작일과 다음 결제일을 입력해주세요.");
+      return;
+    }
+    try {
+      // 중복 추가 방지
+      try {
+        const my = await getSubscriptions();
+        const myItems = Array.isArray(my?.results) ? my.results : [];
+        const already = myItems.some((s)=> String(s.plan) === String(selectedPlanId));
+        if (already) {
+          const ok = window.confirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
+          if (!ok) return;
+        }
+      } catch (_) {}
+
+      await addSubscription(selectedPlanId, {
+        start_date: startDate,
+        next_payment_date: nextPaymentDate,
+        custom_memo: customMemo,
+      });
+      setToastMsg("구독 서비스가 추가되었습니다.");
+      setTimeout(()=> setToastMsg(""), 1800);
+      setAddOpen(false);
+    } catch (e) {
+      setToastMsg("구독 추가에 실패했습니다. 관리자에게 문의해주세요.");
+      setTimeout(()=> setToastMsg(""), 2000);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -165,7 +239,7 @@ export default function AllServicesPage() {
                   setSelectedCategories([]);
                   setMinPrice("");
                   setMaxPrice("");
-                  setOnlyFav(false);
+                  setOnlyBookmark(false);
                   setSort("recommended");
                 }}
                 className="h-10 whitespace-nowrap rounded-2xl px-4 bg-white/10 hover:bg-white/15"
@@ -199,7 +273,7 @@ export default function AllServicesPage() {
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm inline-flex items-center gap-2 mt-6 md:mt-0">
-                <input type="checkbox" className="accent-fuchsia-500" checked={onlyFav} onChange={(e)=> setOnlyFav(e.target.checked)} /> 즐겨찾기만 보기
+                <input type="checkbox" className="accent-fuchsia-500" checked={onlyBookmark} onChange={(e)=> setOnlyBookmark(e.target.checked)} /> 즐겨찾기만 보기
               </label>
             </div>
             <div>
@@ -211,17 +285,17 @@ export default function AllServicesPage() {
               <input id="max" type="number" inputMode="numeric" className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2" placeholder="20000" value={maxPrice} onChange={(e)=> setMaxPrice(e.target.value)} />
             </div>
             <div className="md:col-span-2">
-              <button type="button" onClick={()=> { setSelectedCategories([]); setMinPrice(""); setMaxPrice(""); setSort("recommended"); setOnlyFav(false); }} className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15">필터 초기화</button>
+              <button type="button" onClick={()=> { setSelectedCategories([]); setMinPrice(""); setMaxPrice(""); setSort("recommended"); setOnlyBookmark(false); }} className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15">필터 초기화</button>
             </div>
           </div>
 
-          {(selectedCategories.length>0 || minPrice || maxPrice || onlyFav) && (
+          {(selectedCategories.length>0 || minPrice || maxPrice || onlyBookmark) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-slate-400 mr-1">적용된 필터:</span>
               {selectedCategories.map((c)=> (<span key={c} className="px-2 py-1 rounded-2xl bg-white/10">#{c}</span>))}
               {minPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최소 {minPrice}</span>}
               {maxPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최대 {maxPrice}</span>}
-              {onlyFav && <span className="px-2 py-1 rounded-2xl bg-white/10">즐겨찾기만</span>}
+              {onlyBookmark && <span className="px-2 py-1 rounded-2xl bg-white/10">즐겨찾기만</span>}
             </div>
           )}
         </div>
@@ -244,19 +318,19 @@ export default function AllServicesPage() {
           )}
 
           {!loading && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((s) => {
                 const checked = Boolean(selected[String(s.id)]);
                 return (
                   <div
                     key={s.id}
-                    className={`rounded-lg bg-slate-800 p-6 ring-1 ${checked ? 'ring-fuchsia-500' : 'ring-white/10'} hover:bg-slate-700 transition cursor-pointer`}
+                    className={`rounded-2xl bg-slate-900/60 p-5 ring-1 ${checked ? 'ring-fuchsia-500' : 'ring-white/10'} shadow-lg transition cursor-pointer hover:bg-slate-900/70`}
                     onClick={() => {
                       const idStr = String(s.id);
                       setSelected((prev) => ({ ...prev, [idStr]: !Boolean(prev[idStr]) }));
                     }}
                   >
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           {s.logo_url ? (
@@ -273,15 +347,15 @@ export default function AllServicesPage() {
                         onClick={async (e)=> {
                           e.stopPropagation();
                           const idStr = String(s.id);
-                          const isFav = favoriteIds.has(idStr);
+                          const isFav = bookmarkIds.has(idStr);
                           try {
                             if (isFav) {
-                              const ok = await removeFavoriteApi(idStr);
-                              setFavoriteIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
+                              const ok = await removeBookmarkApi(idStr);
+                              setBookmarkIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
                               setToastMsg(ok && ok.source === 'local' ? '즐겨찾기를 해제했어요.' : '즐겨찾기를 해제했어요.');
                             } else {
-                              const ok = await addFavoriteApi(idStr);
-                              setFavoriteIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
+                              const ok = await addBookmarkApi(idStr);
+                              setBookmarkIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
                               setToastMsg(ok && ok.source === 'local' ? '즐겨찾기에 추가했어요.' : '즐겨찾기에 추가했어요.');
                             }
                           } catch (_) {
@@ -292,7 +366,11 @@ export default function AllServicesPage() {
                         }}
                         aria-label="즐겨찾기 토글"
                         title="즐겨찾기"
-                      >{favoriteIds.has(String(s.id)) ? '★' : '☆'}</button>
+                      >
+                        <span className={`${bookmarkIds.has(String(s.id)) ? 'text-yellow-400' : 'text-slate-400'} text-2xl leading-none`}>
+                          {bookmarkIds.has(String(s.id)) ? '★' : '☆'}
+                        </span>
+                      </button>
                       <input
                         type="checkbox"
                         className="accent-fuchsia-500"
@@ -318,7 +396,9 @@ export default function AllServicesPage() {
                       />
                     </div>
                     <div className="mt-1 text-sm text-slate-300 whitespace-nowrap">
-                      (월 가격 기준) 최소 {formatKRW(s.min_price)} ~ 최대 {formatKRW(s.max_price)}
+                      {s.min_price !== undefined && s.min_price !== null
+                        ? `${s.billing_cycle ? `${s.billing_cycle} ` : ""}${formatKRW(s.min_price)} ~`
+                        : '가격 정보 없음'}
                     </div>
                     {/* 메모 요약 뱃지 */}
                     {getNote(s.id) && (
@@ -328,6 +408,13 @@ export default function AllServicesPage() {
                     )}
                     <div className="mt-3 flex items-center gap-2">
                       <Link to={`/services/${s.id}`} onClick={(e)=> e.stopPropagation()} className="text-fuchsia-300 hover:underline text-sm">상세 보기</Link>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openAdd(s.id, s.name); }}
+                        className="px-3 py-1 rounded-xl btn-primary text-slate-50 whitespace-nowrap text-sm"
+                      >
+                        구독목록 추가
+                      </button>
                     </div>
                   </div>
                 );
@@ -362,9 +449,126 @@ export default function AllServicesPage() {
             {toastMsg}
           </div>
         )}
+        {/* 구독 추가 모달 */}
+        {addOpen && (
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setAddOpen(false)} />
+            <div className="relative w-full max-w-md rounded-2xl bg-slate-900 p-6 ring-1 ring-white/10">
+              <h3 className="text-lg font-semibold">내 구독에 추가</h3>
+              <p className="mt-2 text-slate-300 truncate">{addService.name}</p>
+              {addStep === "select" && (
+                <>
+                  <div className="mt-4 max-h-64 overflow-auto rounded-xl bg-slate-950/40 p-3 ring-1 ring-white/10">
+                    {addLoading ? (
+                      <div className="text-slate-400">플랜 정보를 불러오는 중…</div>
+                    ) : addPlans.length === 0 ? (
+                      <div className="text-slate-400">선택 가능한 플랜이 없어요. 상세 페이지에서 확인해보세요.</div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {addPlans.map((p) => {
+                          const cycleText = p.billing_cycle === 'month' ? '월' : p.billing_cycle === 'year' ? '연' : (p.cycle || '');
+                          const priceNum = Number(p.price || p.price_value || 0);
+                          const priceText = Number.isFinite(priceNum) ? `₩ ${priceNum.toLocaleString()}` : String(p.price || '');
+                          return (
+                            <li key={p.id} className="flex items-center gap-3">
+                              <input
+                                id={`plan-${p.id}`}
+                                type="radio"
+                                name="plan"
+                                className="accent-fuchsia-500"
+                                checked={selectedPlanId === p.id}
+                                onChange={() => setSelectedPlanId(p.id)}
+                              />
+                              <label htmlFor={`plan-${p.id}`} className="flex-1 cursor-pointer flex items-center justify-between gap-3">
+                                <span className="truncate">{p.plan_name || p.name}</span>
+                                <span className="text-slate-300 whitespace-nowrap">{cycleText} {priceText}</span>
+                              </label>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button onClick={() => setAddOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
+                    <button
+                      onClick={() => {
+                        if (!selectedPlanId) return;
+                        const today = new Date();
+                        const yyyy = today.getFullYear();
+                        const mm = String(today.getMonth() + 1).padStart(2, "0");
+                        const dd = String(today.getDate()).padStart(2, "0");
+                        const start = `${yyyy}-${mm}-${dd}`;
+                        setStartDate(start);
+                        const plan = (addPlans || []).find((x) => x.id === selectedPlanId);
+                        const cycle = plan?.billing_cycle || "month";
+                        setNextPaymentDate(computeNextDate(start, cycle));
+                        setAddStep("details");
+                      }}
+                      disabled={!selectedPlanId}
+                      className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
+                    >
+                      다음
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {addStep === "details" && (
+                <>
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <label className="text-sm block mb-1">구독 시작일</label>
+                      <input type="date" value={startDate} onChange={(e)=> setStartDate(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="text-sm block mb-1">다음 결제일</label>
+                      <input type="date" value={nextPaymentDate} onChange={(e)=> setNextPaymentDate(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="text-sm block mb-1">메모</label>
+                      <textarea rows={4} value={customMemo} onChange={(e)=> setCustomMemo(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 p-3" placeholder="예: 프리미엄 1개월만 사용 후 해지" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-between gap-2">
+                    <button onClick={() => setAddStep("select")} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">이전</button>
+                    <div className="flex gap-2">
+                      <button onClick={() => setAddOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
+                      <button
+                        onClick={confirmAdd}
+                        disabled={!selectedPlanId}
+                        className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95 disabled:opacity-50"
+                      >
+                        추가
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+function computeNextDate(baseDateStr, cycle) {
+  try {
+    const base = baseDateStr ? new Date(baseDateStr) : new Date();
+    if (cycle === "year") {
+      return `${base.getFullYear() + 1}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
+    }
+    const y = base.getFullYear();
+    const m = base.getMonth();
+    const d = base.getDate();
+    const next = new Date(y, m + 1, d);
+    return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+  } catch (_) {
+    return "";
+  }
+}
+
+// (컴포넌트 내부 정의 사용)
 
 

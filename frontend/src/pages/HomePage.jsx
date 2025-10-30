@@ -121,32 +121,46 @@ export default function HomePage() {
           </div>
 
           {/* 검색 바 */}
-          <form onSubmit={handleSearch} className="mt-8 flex items-center gap-3 flex-nowrap justify-center w-full">
+          <form onSubmit={handleSearch} className="mt-8 flex items-center gap-3 flex-wrap sm:flex-nowrap justify-center w-full">
             <input
               value={q}
               onChange={(e)=>setQ(e.target.value)}
-              placeholder="서비스 이름으로 검색 (예: 넷플릭스, 디즈니+)"
+              placeholder="서비스 이름으로 검색 (예: 넷플릭스, 디즈니플러스)"
               className="w-full sm:w-4/5 md:w-2/3 h-12 rounded-2xl bg-slate-900/70 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-fuchsia-400"
               aria-label="구독 서비스 검색"
             />
             <button
               type="submit"
-              className="h-12 whitespace-nowrap rounded-2xl px-5 btn-primary text-slate-50 font-semibold hover:opacity-95 transition shadow-lg focus-ring"
+              className="h-12 w-full sm:w-auto whitespace-nowrap rounded-2xl px-5 btn-primary text-slate-50 font-semibold hover:opacity-95 transition shadow-lg focus-ring"
               aria-label="검색 실행"
             >
               검색
             </button>
           </form>
 
-          {/* 통계 카드 */}
-          <div className="mt-12 md:mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-            {[{n:"500+", l:"구독 서비스"}, {n:"₩45,000", l:"평균 절약 금액"}, {n:"50K+", l:"사용자"}].map((s) => (
-              <div key={s.l} className="glass-card rounded-2xl px-8 py-6 text-center hover:border-fuchsia-300/50 transition">
-                <div className="stat-number text-3xl md:text-4xl font-black">{s.n}</div>
-                <div className="text-sm md:text-base text-white/70 mt-2">{s.l}</div>
+          {/* 소개 섹션: 히어로 검색바 하단으로 이동 */}
+          <div id="about" className="mt-8 mx-auto max-w-4xl text-left">
+            <div className="glass-card rounded-2xl p-6 md:p-8 ring-1 ring-white/10 flex flex-col md:flex-row items-start gap-6">
+              <img src="/guava-logo.png" alt="Guava 로고" className="shrink-0 w-12 h-12 rounded-xl object-cover" />
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 text-sm text-white/80">
+                  <span className="px-2 py-1 rounded-full bg-white/10 border border-white/20">구아바는 ‘구독 서비스 모아봐’ 의 줄임말입니다!</span>
+                </div>
+                <h2 className="mt-3 text-2xl md:text-3xl font-extrabold leading-tight">구독, 흩어져 있지 말고 한 곳에서.</h2>
+                <p className="mt-2 text-slate-300">
+                  구아바는 OTT·음악·클라우드 등 다양한 구독을 한데 모아 <span className="text-white font-semibold">비교</span>하고,
+                  나에게 맞는 <span className="text-white font-semibold">최적 요금제</span>를 찾도록 돕는 서비스예요.<br/>
+                  내 구독 목록을 관리하고, 카테고리별 지출을 확인해 매달 고정비를 <span className="text-white font-semibold">똑똑하게 절약</span>하세요.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <a href="#categories" className="btn-secondary rounded-xl px-4 py-2 focus-ring">카테고리 보기</a>
+                  <a href="/services" className="btn-primary rounded-xl px-4 py-2 focus-ring">지금 찾아보기</a>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
+
+          {/* 통계 카드: 데이터 검증 전이라 임시 비표시 */}
         </div>
       </section>
 
@@ -179,10 +193,7 @@ export default function HomePage() {
             title="가격 한눈에"
             desc="플랜/프로모션/번들까지 비교해 최저 비용을 골라요."
           />
-          <Feature
-            title="결제일 알림"
-            desc="결제일 전에 푸시/이메일로 알려 과금 폭탄을 예방해요."
-          />
+          {/* 결제일 알림: 기능 공개 전까지 숨김 처리 */}
           <Feature
             title="소비 리포트"
             desc="월·연간 합계와 카테고리별 비율로 지출을 분석해요."
@@ -214,7 +225,7 @@ export default function HomePage() {
           {[
             { step: "1", title: "검색", desc: "원하는 서비스를 검색해요." },
             { step: "2", title: "추가", desc: "내 구독에 추가해요." },
-            { step: "3", title: "자동 알림", desc: "결제일 전에 미리 알려줘요." },
+            { step: "3", title: "관리", desc: "내 구독을 한곳에서 손쉽게 관리해요." },
           ].map((s) => (
             <div key={s.step} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
               <div className="text-fuchsia-400 font-extrabold text-xl">{s.step}</div>

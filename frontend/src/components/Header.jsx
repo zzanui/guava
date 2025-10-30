@@ -13,7 +13,7 @@ export default function Header() {
           <img src="/guava-logo.png" alt="Guava" className="h-8 w-auto" />
           <span className="text-xl font-extrabold tracking-tight text-gradient">구아바</span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="hidden md:flex items-center gap-4 text-sm">
           <Link to="/contact" className="hover:text-fuchsia-300">문의</Link>
           <Link to="/notices" className="hover:text-fuchsia-300">공지사항</Link>
           {signedIn ? (

@@ -3,18 +3,32 @@ const KEY = "guava:prefs";
 function read() {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : {
+    const base = raw ? JSON.parse(raw) : {
       notifications: { email: false, push: false, sms: false },
-      favorites: [],
+      bookmarks: [],
       notes: {},
       notesHistory: {},
       telecomId: null,
       cardIds: []
     };
+    // migrate favorites -> bookmarks if needed and cleanup legacy key
+    let dirty = false;
+    if (!Array.isArray(base.bookmarks) && Array.isArray(base.favorites)) {
+      base.bookmarks = base.favorites.map(String);
+      dirty = true;
+    }
+    if (Object.prototype.hasOwnProperty.call(base, 'favorites')) {
+      delete base.favorites;
+      dirty = true;
+    }
+    if (dirty) {
+      try { localStorage.setItem(KEY, JSON.stringify(base)); } catch (_) {}
+    }
+    return base;
   } catch (_) {
     return {
       notifications: { email: false, push: false, sms: false },
-      favorites: [],
+      bookmarks: [],
       notes: {},
       notesHistory: {},
       telecomId: null,
@@ -38,59 +52,62 @@ export function setNotification(key, value) {
   return p.notifications;
 }
 
-export function toggleFavorite(name) {
+// --- Name-based bookmarks ---
+export function toggleBookmark(name) {
   const p = read();
-  const has = p.favorites.includes(name);
-  p.favorites = has ? p.favorites.filter((n) => n !== name) : [...p.favorites, name];
+  const list = Array.isArray(p.bookmarks) ? p.bookmarks.map(String) : [];
+  const has = list.includes(String(name));
+  p.bookmarks = has ? list.filter((n) => n !== String(name)) : [...list, String(name)];
   write(p);
-  return p.favorites;
+  return p.bookmarks;
 }
 
-export function removeFavorite(name) {
+export function removeBookmark(name) {
   const p = read();
-  p.favorites = p.favorites.filter((n) => n !== name);
+  const list = Array.isArray(p.bookmarks) ? p.bookmarks.map(String) : [];
+  p.bookmarks = list.filter((n) => n !== String(name));
   write(p);
-  return p.favorites;
+  return p.bookmarks;
 }
 
-// --- ID-based favorites (recommended) ---
+// --- ID-based bookmarks (recommended) ---
 function normalizeId(value) {
   if (value == null) return null;
   return String(value);
 }
 
-export function getFavoriteIds() {
+export function getBookmarkIds() {
   const p = read();
-  // Backward compat: allow non-id entries (names) but prefer ids
-  return (p.favorites || []).map((x) => String(x));
+  const list = Array.isArray(p.bookmarks) ? p.bookmarks : [];
+  return list.map((x) => String(x));
 }
 
-export function isFavorite(serviceId) {
+export function isBookmarked(serviceId) {
   const id = normalizeId(serviceId);
   if (!id) return false;
-  const set = new Set(getFavoriteIds());
+  const set = new Set(getBookmarkIds());
   return set.has(id);
 }
 
-export function toggleFavoriteById(serviceId) {
+export function toggleBookmarkById(serviceId) {
   const id = normalizeId(serviceId);
-  if (!id) return getFavoriteIds();
+  if (!id) return getBookmarkIds();
   const p = read();
-  const list = (p.favorites || []).map((x) => String(x));
+  const list = (Array.isArray(p.bookmarks) ? p.bookmarks : []).map((x) => String(x));
   const has = list.includes(id);
-  p.favorites = has ? list.filter((x) => x !== id) : [...list, id];
+  p.bookmarks = has ? list.filter((x) => x !== id) : [...list, id];
   write(p);
-  return p.favorites;
+  return p.bookmarks;
 }
 
-export function removeFavoriteById(serviceId) {
+export function removeBookmarkById(serviceId) {
   const id = normalizeId(serviceId);
-  if (!id) return getFavoriteIds();
+  if (!id) return getBookmarkIds();
   const p = read();
-  const list = (p.favorites || []).map((x) => String(x));
-  p.favorites = list.filter((x) => x !== id);
+  const list = (Array.isArray(p.bookmarks) ? p.bookmarks : []).map((x) => String(x));
+  p.bookmarks = list.filter((x) => x !== id);
   write(p);
-  return p.favorites;
+  return p.bookmarks;
 }
 
 // --- Service notes (memo) ---
@@ -144,7 +161,7 @@ export function getNoteHistory(serviceId) {
 export function exportPrefsPayload() {
   const p = read();
   return {
-    favorites: (p.favorites || []).map(String),
+    bookmarks: (p.bookmarks || []).map(String),
     notes: p.notes || {},
     notesHistory: p.notesHistory || {},
     updatedAt: Date.now(),
@@ -157,7 +174,9 @@ export function importPrefsPayload(payload = {}) {
     const current = read();
     const next = {
       ...current,
-      favorites: Array.isArray(payload.favorites) ? payload.favorites.map(String) : (current.favorites || []),
+      bookmarks: Array.isArray(payload.bookmarks)
+        ? payload.bookmarks.map(String)
+        : (Array.isArray(payload.favorites) ? payload.favorites.map(String) : (current.bookmarks || [])),
       notes: typeof payload.notes === 'object' && payload.notes ? payload.notes : (current.notes || {}),
       notesHistory: typeof payload.notesHistory === 'object' && payload.notesHistory ? payload.notesHistory : (current.notesHistory || {}),
     };

@@ -5,8 +5,8 @@ import { getServiceDetail } from "../services/serviceService";
 import DetailServiceCard from "../components/ServiceCard"; // 요금제 표시에 필요하다면 사용
 import { addSubscription, getSubscriptions } from "../services/subscriptionService";
 import { addSubscription as addLocalSubscription } from "../services/localSubscriptions.js";
-import { getNote, setNote } from "../services/localPrefs.js";
-import { addFavorite as addFavApi, isFavorite as isFavApi } from "../services/favoritesService";
+import { getBookmarkMemo, setBookmarkMemo } from "../services/bookmarksService";
+import { addBookmark as addFavApi, isBookmarked as isFavApi } from "../services/bookmarksService";
 import { getPriceHistory, listPromotions, listBundles } from "../services/mockApi";
 import SidebarLayout from "../layouts/SidebarLayout.jsx";
 import useAuth from "../hooks/useAuth";
@@ -64,7 +64,8 @@ export default function ServiceDetailPage() {
         };
         setData(mapped);
         try {
-          setNoteText(getNote(s.id));
+          const memo = await getBookmarkMemo(id);
+          setNoteText(memo || "");
         } catch (_) { setNoteText(""); }
         try {
           const [ph, pm, bd] = await Promise.all([
@@ -409,7 +410,7 @@ export default function ServiceDetailPage() {
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setNoteOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">닫기</button>
               <button
-                onClick={() => { try { setNote(service?.id, noteText); } catch (_) {} setNoteOpen(false); }}
+                onClick={async () => { try { await setBookmarkMemo(service?.id, noteText); } catch (_) {} setNoteOpen(false); }}
                 className="px-4 py-2 rounded-2xl btn-primary text-slate-50 font-semibold hover:opacity-95"
               >저장</button>
             </div>

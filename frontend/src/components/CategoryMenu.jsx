@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getServices } from "../services/serviceService";
 
-export default function CategoryMenu() {
+export default function CategoryMenu({ inlineList = false }) {
   const [open, setOpen] = useState(false);
   const [closeTimer, setCloseTimer] = useState(null);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -44,6 +44,35 @@ export default function CategoryMenu() {
     }
     return groups; // {group: [{slug, display, count}]}
   }, [items]);
+
+  if (inlineList) {
+    return (
+      <nav aria-label="카테고리 목록" className="p-3 space-y-3">
+        {['entertainment','lifestyle','productivity','etc']
+          .filter((group) => (categories[group] || []).length > 0)
+          .map((group) => (
+            <div key={group}>
+              <div className="px-1 py-1 text-xs tracking-wide text-slate-400">
+                {{ entertainment: "엔터테인먼트", lifestyle: "라이프스타일", productivity: "생산성", etc: "기타" }[group] || group}
+              </div>
+              <ul className="mt-1 space-y-1">
+                {(categories[group] || []).map((c) => (
+                  <li key={c.slug}>
+                    <a
+                      className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-white/10"
+                      href={`/categories/${encodeURIComponent(c.slug)}`}
+                    >
+                      <span className="capitalize">{c.display}</span>
+                      <span className="text-slate-400 text-xs">{c.count}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+      </nav>
+    );
+  }
 
   function openMenu() {
     if (closeTimer) {

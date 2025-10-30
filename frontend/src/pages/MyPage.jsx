@@ -1,10 +1,11 @@
 // src/pages/MyPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getSubscriptions, deleteSubscription } from "../services/subscriptionService";
-import { getPrefs, setNotification, removeFavoriteById, setTelecom, toggleCard, getNote, deleteNote, getNoteHistory, getFavoriteIds } from "../services/localPrefs.js";
+import { getPrefs, setNotification, setTelecom, toggleCard } from "../services/localPrefs.js";
 import { getServices } from "../services/serviceService";
 import api from "../services/api";
+import { listBookmarks, removeBookmark, listBookmarkEntries, clearBookmarkMemo } from "../services/bookmarksService.js";
 import SidebarLayout from "../layouts/SidebarLayout.jsx";
 import CategoryCostCharts from "../components/CategoryCostCharts.jsx";
 
@@ -20,9 +21,64 @@ export default function MyPage() {
   const [serviceNameById, setServiceNameById] = useState({});
   const [serviceIdByName, setServiceIdByName] = useState({});
   const [categoryAgg, setCategoryAgg] = useState([]);
+  const [bookmarkIds, setBookmarkIds] = useState(new Set());
+  const [memoEntries, setMemoEntries] = useState([]);
+  const [activeSection, setActiveSection] = useState("subs");
   const SHOW_TELECOM = false;
   const SHOW_CARDS = false;
   const SHOW_NOTIFICATIONS = false;
+
+  // 섹션 스크롤을 위한 ref
+  const subsRef = useRef(null);
+  const totalRef = useRef(null);
+  const chartsRef = useRef(null);
+  const bookmarksRef = useRef(null);
+  const memoRef = useRef(null);
+  const reportRef = useRef(null);
+
+  const SCROLL_OFFSET_PX = 120;
+  const scrollToRef = (ref) => {
+    if (ref && ref.current) {
+      const el = ref.current;
+      const top = el.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET_PX;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+  };
+
+  // 현재 스크롤 위치에 따라 활성 섹션 업데이트
+  useEffect(() => {
+    const list = [
+      { key: "subs", ref: subsRef },
+      { key: "total", ref: totalRef },
+      { key: "charts", ref: chartsRef },
+      { key: "bookmarks", ref: bookmarksRef },
+      { key: "memo", ref: memoRef },
+      { key: "report", ref: reportRef },
+    ];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible.length > 0) {
+          const target = visible[0].target;
+          const matched = list.find((s) => s.ref.current === target);
+          if (matched) setActiveSection(matched.key);
+        }
+      },
+      {
+        root: null,
+        threshold: [0.25, 0.5, 0.75],
+        rootMargin: "0px 0px -50% 0px",
+      }
+    );
+
+    for (const s of list) {
+      if (s.ref.current) observer.observe(s.ref.current);
+    }
+    return () => observer.disconnect();
+  }, [subs, categoryAgg, bookmarkIds, memoEntries]);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,31 +89,41 @@ export default function MyPage() {
         const data = await getSubscriptions();
         const results = Array.isArray(data?.results) ? data.results : [];
         const sum = Number(data?.total_price || 0);
-        const [telResp, cardResp, servicesList] = await Promise.all([
+        const [telResp, cardResp, servicesList, bookmarkList, bookmarkEntryList] = await Promise.all([
           api.get("/api/telecoms/"),
           api.get("/api/cards/"),
           // 전체 서비스 이름 맵 구성
           getServices(),
+          listBookmarks().catch(() => []),
+          listBookmarkEntries().catch(() => []),
         ]);
         const telList = Array.isArray(telResp?.data) ? telResp.data : [];
         const cardList = Array.isArray(cardResp?.data) ? cardResp.data : [];
         const list = Array.isArray(servicesList) ? servicesList : [];
         const nameMap = Object.fromEntries(list.map((s) => [String(s.id), s.name]));
         const idMap = Object.fromEntries(list.map((s) => [s.name, String(s.id)]));
-        if (!cancelled) {
+          if (!cancelled) {
           setSubs(results);
           setTotal(sum);
           setTelecoms(telList);
           setCards(cardList);
           setServiceNameById(nameMap);
           setServiceIdByName(idMap);
-          // 카테고리별 집계 (월 기준): price_override > plan_price
+          setBookmarkIds(new Set((bookmarkList || []).map(String)));
+          setMemoEntries((Array.isArray(bookmarkEntryList) ? bookmarkEntryList : [])
+            .filter(e => String(e?.memo || "").trim() !== "")
+            .map(e => ({ service: String(e.service), memo: String(e.memo || "") }))
+          );
+          // 카테고리별 집계 (월 환산 기준): price_override > plan_price, 연간 요금은 12로 나눔
           const byCat = new Map();
 
           for (const it of results) {
             const cat = String(it.plan_service_category || it.category || it.plan_category || "기타");
-            const amount = Number(it.price_override ?? it.plan_price ?? 0);
-            byCat.set(cat, (byCat.get(cat) || 0) + amount);
+            const rawAmount = Number(it.price_override ?? it.plan_price ?? 0);
+            const cycleRaw = String(it.plan_billing_cycle ?? it.billing_cycle ?? "").toLowerCase();
+            const isYearly = cycleRaw.startsWith("year");
+            const amountMonthly = isYearly ? rawAmount / 12 : rawAmount;
+            byCat.set(cat, (byCat.get(cat) || 0) + amountMonthly);
           }
           setCategoryAgg(Array.from(byCat, ([category, amount]) => ({ category, amount })));
           console.log('=== categoryAgg 데이터 ===');
@@ -99,8 +165,26 @@ console.log(results.map(r => ({
     }
   };
 
+  // 마이페이지 전용 사이드바 메뉴
+  const navClass = (key) =>
+    `block w-full text-left rounded-xl px-3 py-2 transition focus-ring ${
+      activeSection === key ? "bg-white/10 text-slate-100" : "hover:bg-white/5 text-slate-300"
+    }`;
+
+  const mySidebar = (
+    <nav className="p-4 space-y-1">
+      <button className={navClass("subs")} onClick={() => scrollToRef(subsRef)}>내 구독 리스트</button>
+      <button className={navClass("total")} onClick={() => scrollToRef(totalRef)}>구독료 합계</button>
+      <button className={navClass("bookmarks")} onClick={() => scrollToRef(bookmarksRef)}>즐겨찾기</button>
+      <button className={navClass("memo")} onClick={() => scrollToRef(memoRef)}>내 메모</button>
+      <hr className="my-2 border-white/10" />
+      <button className={navClass("charts")} onClick={() => scrollToRef(chartsRef)}>카테고리별 통계</button>
+      <button className={navClass("report")} onClick={() => scrollToRef(reportRef)}>구독 서비스 리포트</button>
+    </nav>
+  );
+
   return (
-    <SidebarLayout>
+    <SidebarLayout sidebarContent={mySidebar}>
       <div className="container-page section-y">
         <div className="mx-auto w-full max-w-3xl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -111,6 +195,8 @@ console.log(results.map(r => ({
       {loading && <p className="text-slate-400 mt-6">불러오는 중...</p>}
       {error && <p className="mb-4 text-red-400">{error}</p>}
 
+      {/* 앵커: 내 구독 리스트 */}
+      <div ref={subsRef} className="h-px scroll-mt-24" aria-hidden="true" />
       {!loading && !error && subs.length === 0 && (
         <div className="mb-6 rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
           <p className="text-slate-300">아직 등록된 구독이 없습니다.</p>
@@ -139,7 +225,14 @@ console.log(results.map(r => ({
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="text-slate-300 whitespace-nowrap">₩ {Number(s.price_override ?? s.plan_price ?? 0).toLocaleString()}</div>
+                  <div className="text-slate-300 whitespace-nowrap flex items-center gap-2">
+                    {((s.plan_billing_cycle ?? s.billing_cycle) !== undefined && (s.plan_billing_cycle ?? s.billing_cycle) !== null) && (
+                      <span className="inline-flex items-center justify-center rounded-md border border-white/20 px-2 py-0.5 text-current leading-tight">
+                        {String(s.plan_billing_cycle ?? s.billing_cycle).toLowerCase().startsWith('year') ? '연' : '월'}
+                      </span>
+                    )}
+                    <span>₩ {Number(s.price_override ?? s.plan_price ?? 0).toLocaleString()}</span>
+                  </div>
                   <button
                     onClick={async () => {
                       const ok = window.confirm("정말 삭제하시겠습니까?");
@@ -165,17 +258,22 @@ console.log(results.map(r => ({
         </section>
       )}
 
-      <section className="mb-6 rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
-        <h2 className="text-2xl font-bold mb-2">총 구독료</h2>
+      {/* 앵커: 구독료 합계 */}
+      <section ref={totalRef} className="mb-6 rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 scroll-mt-24">
+        <h2 className="text-2xl font-bold mb-2">구독료 합계</h2>
         <p className="text-2xl font-extrabold">₩ {Number(total || 0).toLocaleString()} / 월</p>
       </section>
 
-      {/* 카테고리별 비용/비율 차트 */}
+      {/* 앵커: 카테고리별 통계 */}
+      <div ref={chartsRef} className="h-px scroll-mt-24" aria-hidden="true" />
       {categoryAgg.length > 0 && (
         <section className="mb-6">
+          <h2 className="text-2xl font-bold mb-3">카테고리별 통계</h2>
           <CategoryCostCharts data={categoryAgg} />
         </section>
       )}
+
+      
 
       {SHOW_NOTIFICATIONS && (
         <section className="mb-6 rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
@@ -210,13 +308,14 @@ console.log(results.map(r => ({
         </section>
       )}
 
-      <section className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10">
+      {/* 앵커: 즐겨찾기 */}
+      <section ref={bookmarksRef} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 scroll-mt-24">
         <h2 className="text-2xl font-bold mb-2">즐겨찾기</h2>
-        {getFavoriteIds().length === 0 ? (
+        {bookmarkIds.size === 0 ? (
           <div className="text-slate-300">즐겨찾기한 서비스가 없습니다.</div>
         ) : (
           <ul className="text-slate-300">
-            {getFavoriteIds().map((idRaw)=> {
+            {Array.from(bookmarkIds).map((idRaw)=> {
               const idStr = String(idRaw);
               const nameById = serviceNameById[idStr];
               const resolvedName = nameById || idStr; // id가 없고 이름이 저장된 경우 이름 그대로 표시
@@ -226,7 +325,7 @@ console.log(results.map(r => ({
                   <div className="min-w-0">
                     <div className="text-lg sm:text-xl font-semibold truncate">{resolvedName}</div>
                     {/* 메모 요약 */}
-                    <div className="text-xs text-slate-400 truncate max-w-[40ch]">{getNote(idStr) || ""}</div>
+                    <div className="text-xs text-slate-400 truncate max-w-[40ch]">{(memoEntries.find(e => String(e.service) === idStr)?.memo) || ""}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     {resolvedId && (
@@ -237,7 +336,15 @@ console.log(results.map(r => ({
                       onClick={() => {
                         const ok = window.confirm("정말 해제하시겠습니까?");
                         if (!ok) return;
-                        setPrefs((p) => ({ ...p, favorites: removeFavoriteById(idStr) }));
+                        removeBookmark(idStr)
+                          .catch(() => {})
+                          .finally(() => {
+                            setBookmarkIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(idStr);
+                              return next;
+                            });
+                          });
                       }}
                     >해제</button>
                   </div>
@@ -248,15 +355,15 @@ console.log(results.map(r => ({
         )}
       </section>
 
+      {/* 앵커: 메모 */}
       {/* 메모 목록 */}
-      <section className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 mt-6">
+      <section ref={memoRef} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 mt-6 scroll-mt-24">
         <h2 className="text-2xl font-bold mb-2">내 메모</h2>
-        {Object.keys(prefs.notes || {}).length === 0 ? (
+        {memoEntries.length === 0 ? (
           <div className="text-slate-300">저장된 메모가 없습니다.</div>
         ) : (
           <ul className="divide-y divide-white/10">
-            {Object.entries(prefs.notes || {}).map(([idRaw, text]) => {
-              const idStr = String(idRaw);
+            {memoEntries.map(({ service: idStr, memo }) => {
               const nameById = serviceNameById[idStr];
               const resolvedName = nameById || idStr;
               const resolvedId = nameById ? idStr : (serviceIdByName[idStr] || null);
@@ -264,25 +371,14 @@ console.log(results.map(r => ({
               <li key={idStr} className="py-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-lg sm:text-xl font-semibold truncate">{resolvedName}</div>
-                  <div className="whitespace-pre-wrap break-words text-slate-200">{text}</div>
-                  {/* 히스토리 */}
-                  {getNoteHistory(idStr).length > 0 && (
-                    <details className="mt-2 text-xs text-slate-400">
-                      <summary className="cursor-pointer select-none">이전 메모 보기</summary>
-                      <ul className="mt-2 space-y-2">
-                       {getNoteHistory(idStr).map((h, idx) => (
-                          <li key={idx} className="whitespace-pre-wrap break-words">
-                            <span className="mr-2">{new Date(h.ts).toLocaleString()}</span>
-                            <span>{h.value}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
+                  <div className="whitespace-pre-wrap break-words text-slate-200">{memo}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   {resolvedId && (<Link to={`/services/${resolvedId}`} className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15">상세</Link>)}
-                  <button className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15" onClick={()=> { deleteNote(idStr); setPrefs((p)=> getPrefs()); }}>삭제</button>
+                  <button className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15" onClick={async ()=> {
+                    try { await clearBookmarkMemo(idStr); } catch (_) {}
+                    setMemoEntries((prev)=> prev.filter((e)=> String(e.service) !== String(idStr)));
+                  }}>삭제</button>
                 </div>
               </li>
             );})}
@@ -312,7 +408,7 @@ console.log(results.map(r => ({
         </section>
       )}
 
-      <div className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 mt-6">
+      <div ref={reportRef} className="rounded-2xl bg-slate-900/60 p-6 ring-1 ring-white/10 mt-6 scroll-mt-24">
         <h2 className="text-xl font-bold mb-4">구독 서비스 리포트</h2>
         <div className="flex flex-col sm:flex-row gap-4">
           <button onClick={() => handleDownload('csv')} className="flex-1 px-4 py-3 bg-white/10 text-slate-100 rounded-lg font-semibold hover:bg-white/20 transition duration-200">CSV로 내보내기</button>

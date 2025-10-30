@@ -4,7 +4,7 @@ import SidebarLayout from "../layouts/SidebarLayout.jsx";
 import { getServices, getServiceDetail } from "../services/serviceService";
 import { addSubscription, getSubscriptions } from "../services/subscriptionService";
 import useAuth from "../hooks/useAuth";
-import { listFavorites, addFavorite as addFavoriteApi, removeFavorite as removeFavoriteApi } from "../services/favoritesService.js";
+import { listBookmarks, addBookmark as addBookmarkApi, removeBookmark as removeBookmarkApi } from "../services/bookmarksService.js";
 
 export default function CategoryPage() {
   const { slug } = useParams();
@@ -14,7 +14,7 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
-  const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const [bookmarkIds, setBookmarkIds] = useState(new Set());
   const [selected, setSelected] = useState({}); // id -> true
   const MAX_SELECT = 5;
   const selectedIds = useMemo(() => Object.entries(selected).filter(([, v]) => v).map(([k]) => k), [selected]);
@@ -44,7 +44,7 @@ export default function CategoryPage() {
     setSort("recommended");
     setView("card");
     setSelected({});
-    setFavoriteIds(new Set());
+    setBookmarkIds(new Set());
   }, [slug]);
 
   useEffect(() => {
@@ -106,9 +106,9 @@ export default function CategoryPage() {
           );
         }).catch(() => {});
 
-        // 즐겨찾기 초기 로드
-        listFavorites()
-          .then((ids) => { if (!cancelled) setFavoriteIds(new Set((ids || []).map(String))); })
+        // 북마크 초기 로드
+        listBookmarks()
+          .then((ids) => { if (!cancelled) setBookmarkIds(new Set((ids || []).map(String))); })
           .catch(() => {});
       } catch (e) {
         if (!cancelled) setError("데이터를 불러오는 중 오류가 발생했어요.");
@@ -251,7 +251,7 @@ export default function CategoryPage() {
           setQ((inputText || "").trim());
           setInputText("");
         }}
-        className="mt-6 flex items-center gap-3 flex-nowrap"
+        className="mt-6 flex items-center gap-3 flex-wrap sm:flex-nowrap"
         role="search"
         aria-label="카테고리 내 검색"
       >
@@ -263,7 +263,7 @@ export default function CategoryPage() {
             className="w-full h-10 rounded-2xl bg-slate-900 border border-white/10 px-4 outline-none focus:ring-2 focus:ring-fuchsia-400"
           aria-label="검색어 입력"
         />
-        <button type="submit" className="h-10 whitespace-nowrap rounded-2xl px-4 btn-primary text-slate-50 font-semibold hover:opacity-95 transition">검색</button>
+        <button type="submit" className="h-10 w-full sm:w-auto whitespace-nowrap rounded-2xl px-4 btn-primary text-slate-50 font-semibold hover:opacity-95 transition">검색</button>
       </form>
 
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -366,15 +366,15 @@ export default function CategoryPage() {
                         onClick={async (e)=> {
                           e.stopPropagation();
                           const idStr = String(s.id);
-                          const isFav = favoriteIds.has(idStr);
+                          const isFav = bookmarkIds.has(idStr);
                           try {
                             if (isFav) {
-                              const ok = await removeFavoriteApi(idStr);
-                              setFavoriteIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
+                              const ok = await removeBookmarkApi(idStr);
+                              setBookmarkIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
                               setToastMsg('즐겨찾기를 해제했어요.');
                             } else {
-                              const ok = await addFavoriteApi(idStr);
-                              setFavoriteIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
+                              const ok = await addBookmarkApi(idStr);
+                              setBookmarkIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
                               setToastMsg('즐겨찾기에 추가했어요.');
                             }
                           } catch (_) {
@@ -385,7 +385,11 @@ export default function CategoryPage() {
                         }}
                         aria-label="즐겨찾기 토글"
                         title="즐겨찾기"
-                      >{favoriteIds.has(String(s.id)) ? '★' : '☆'}</button>
+                      >
+                        <span className={`${bookmarkIds.has(String(s.id)) ? 'text-yellow-400' : 'text-slate-400'} text-2xl leading-none`}>
+                          {bookmarkIds.has(String(s.id)) ? '★' : '☆'}
+                        </span>
+                      </button>
                       <input
                         type="checkbox"
                         className="accent-fuchsia-500 mt-1"
@@ -461,15 +465,15 @@ export default function CategoryPage() {
                     className="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs"
                     onClick={async ()=> {
                       const idStr = String(s.id);
-                      const isFav = favoriteIds.has(idStr);
+                      const isFav = bookmarkIds.has(idStr);
                       try {
                         if (isFav) {
-                          const ok = await removeFavoriteApi(idStr);
-                          setFavoriteIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
+                          const ok = await removeBookmarkApi(idStr);
+                          setBookmarkIds((prev)=> { const next = new Set(prev); next.delete(idStr); return next; });
                           setToastMsg('즐겨찾기를 해제했어요.');
                         } else {
-                          const ok = await addFavoriteApi(idStr);
-                          setFavoriteIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
+                          const ok = await addBookmarkApi(idStr);
+                          setBookmarkIds((prev)=> { const next = new Set(prev); next.add(idStr); return next; });
                           setToastMsg('즐겨찾기에 추가했어요.');
                         }
                       } catch (_) {
@@ -480,7 +484,11 @@ export default function CategoryPage() {
                     }}
                     aria-label="즐겨찾기 토글"
                     title="즐겨찾기"
-                  >{favoriteIds.has(String(s.id)) ? '★' : '☆'}</button>
+                  >
+                    <span className={`${bookmarkIds.has(String(s.id)) ? 'text-yellow-400' : 'text-slate-400'} text-2xl leading-none`}>
+                      {bookmarkIds.has(String(s.id)) ? '★' : '☆'}
+                    </span>
+                  </button>
                   {/* 비교 선택 체크박스 */}
                   <input
                     type="checkbox"

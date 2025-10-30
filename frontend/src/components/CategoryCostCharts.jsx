@@ -22,6 +22,7 @@ export default function CategoryCostCharts({ data = [] }) {
   const visible = useMemo(() => (Array.isArray(data) ? data : []).filter((d)=> Number(d.amount) > 0 && !excluded.has(d.category || "기타")), [data, excluded]);
   const total = visible.reduce((acc, d) => acc + Number(d.amount || 0) * multiplier, 0);
   const max = visible.reduce((m, d) => Math.max(m, Number(d.amount || 0) * multiplier), 0);
+  const displayTotal = Math.ceil(total);
 
   const segments = useMemo(() => {
     if (total <= 0) return [];
@@ -37,9 +38,10 @@ export default function CategoryCostCharts({ data = [] }) {
     });
   }, [visible, total, multiplier, theme]);
 
-  const size = 180;
+  // 반응형: viewBox를 사용하고 CSS로 크기를 제어한다
+  const baseSize = 220;
   const stroke = 18;
-  const r = size / 2 - stroke / 2;
+  const r = baseSize / 2 - stroke / 2;
   const C = 2 * Math.PI * r;
   let accPct = 0;
 
@@ -56,7 +58,7 @@ export default function CategoryCostCharts({ data = [] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold">카테고리별 비용/비율</h2>
-          <p className="text-sm text-slate-400">총 {formatKRW(total)} / {period === 'year' ? '년' : '월'}</p>
+          <p className="text-sm text-slate-400">총 {formatKRW(displayTotal)} / {period === 'year' ? '년' : '월'}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div>
@@ -80,7 +82,7 @@ export default function CategoryCostCharts({ data = [] }) {
               type="button"
               onClick={()=> {
               const headers = ["카테고리", `금액(${period==='year'?'년':'월'})`, "비율(%)"]; 
-              const rows = segments.map(s => [s.label, String(Math.round(s.value)), String(Math.round(s.pct))]);
+              const rows = segments.map(s => [s.label, String(Math.ceil(s.value)), String(Math.round(s.pct))]);
               const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
               const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
               const url = URL.createObjectURL(blob);
@@ -96,8 +98,14 @@ export default function CategoryCostCharts({ data = [] }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mt-4">
         {/* 도넛 차트 */}
         <div className="flex items-center justify-center">
-          <svg width={size} height={size} role="img" aria-label="카테고리별 비율 도넛 차트">
-            <circle cx={size/2} cy={size/2} r={r} fill="transparent" stroke="#1f2937" strokeWidth={stroke} />
+          <svg
+            role="img"
+            aria-label="카테고리별 비율 도넛 차트"
+            viewBox={`0 0 ${baseSize} ${baseSize}`}
+            className="w-full max-w-[280px] sm:max-w-[240px]"
+            style={{ height: 'auto' }}
+          >
+            <circle cx={baseSize/2} cy={baseSize/2} r={r} fill="transparent" stroke="#1f2937" strokeWidth={stroke} />
             {segments.map((s, i) => {
               const frac = s.pct / 100;
               const dash = C * frac;
@@ -105,15 +113,15 @@ export default function CategoryCostCharts({ data = [] }) {
               const el = (
                 <circle
                   key={s.label + i}
-                  cx={size/2}
-                  cy={size/2}
+                  cx={baseSize/2}
+                  cy={baseSize/2}
                   r={r}
                   fill="transparent"
                   stroke={s.color}
                   strokeWidth={stroke}
                   strokeDasharray={`${dash} ${gap}`}
                   strokeDashoffset={-(C * accPct) / 100}
-                  transform={`rotate(-90 ${size/2} ${size/2})`}
+                  transform={`rotate(-90 ${baseSize/2} ${baseSize/2})`}
                 />
               );
               accPct += s.pct;
