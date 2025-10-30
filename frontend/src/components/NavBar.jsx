@@ -36,9 +36,9 @@ export default function NavBar() {
         ☰
       </button>
       <div className="hidden md:block"><CategoryMenu /></div>
-      <Link to="/services" className="hidden md:inline-block rounded-xl px-3 py-2 hover:bg-white/10 transition">전체 서비스</Link>
+      <Link to="/services" className="hidden md:inline-block rounded-xl px-3 py-2 hover:bg-white/10 transition text-[18px] font-semibold">전체 서비스</Link>
       <Link to="/" className="rounded-xl px-3 py-2 hover:bg-white/10 transition" aria-label="GUAVA 홈">
-        <img src="/guava-logo.png" alt="GUAVA" className="h-6 w-auto" />
+        <img src="/guava-logo.svg" alt="GUAVA" className="h-9 w-auto" />
       </Link>
       <form action="/search" className="flex-1 w-full flex items-center gap-2 flex-wrap md:flex-nowrap" onSubmit={(e)=>{ if(!query.trim()) { e.preventDefault(); } }}>
         <input
@@ -57,7 +57,7 @@ export default function NavBar() {
           <div className="absolute left-0 top-0 bottom-0 w-72 max-w-[80vw]" style={{ backgroundColor: "var(--nav-header-bg)" }}>
             <div className="p-3 flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-2">
-                <img src="/guava-logo.png" alt="Guava" className="h-6 w-auto" />
+                <img src="/guava-logo.svg" alt="Guava" className="h-6 w-auto" />
                 <span className="font-bold">메뉴</span>
               </div>
               <button className="rounded-xl px-3 py-2 hover:bg-white/10" aria-label="메뉴 닫기" onClick={() => setMobileOpen(false)}>✕</button>

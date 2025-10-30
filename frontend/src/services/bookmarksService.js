@@ -1,5 +1,6 @@
 // Unified bookmarks client: tries backend first, falls back to localPrefs
 import api from "./api";
+import { getAccessToken } from "./tokenStorage";
 import {
   getBookmarkIds as getLocalIds,
   isBookmarked as isLocalBookmarked,
@@ -23,6 +24,11 @@ async function listFromServer() {
 }
 
 export async function listBookmarks() {
+  const token = getAccessToken();
+  if (!token) {
+    // 비로그인 상태에서는 로컬 즐겨찾기를 노출하지 않음
+    return [];
+  }
   const server = await listFromServer();
   if (server) return server;
   return getLocalIds();
@@ -34,7 +40,13 @@ export async function addBookmark(serviceId) {
     // 백엔드 필드명: service
     await api.post("/api/my/bookmarks/", { service: id });
     return { ok: true, source: "server" };
-  } catch (_) {
+  } catch (err) {
+    // 인증 오류(401/403)인 경우 로컬 폴백 금지
+    const status = err?.response?.status;
+    if (status === 401 || status === 403 || !getAccessToken()) {
+      throw err;
+    }
+    // 기타 네트워크 오류 시에만 로컬 폴백 허용
     toggleLocalById(id);
     return { ok: true, source: "local" };
   }
@@ -51,7 +63,13 @@ export async function removeBookmark(serviceId) {
       await api.delete(`/api/my/bookmarks/${found.id}/`);
     }
     return { ok: true, source: "server" };
-  } catch (_) {
+  } catch (err) {
+    // 인증 오류(401/403)인 경우 로컬 폴백 금지
+    const status = err?.response?.status;
+    if (status === 401 || status === 403 || !getAccessToken()) {
+      throw err;
+    }
+    // 기타 네트워크 오류 시에만 로컬 폴백 허용
     removeLocalById(id);
     return { ok: true, source: "local" };
   }

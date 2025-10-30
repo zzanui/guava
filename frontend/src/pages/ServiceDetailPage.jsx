@@ -185,6 +185,11 @@ export default function ServiceDetailPage() {
               onClick={async ()=> {
                 const sid = service?.id ?? data?.id;
                 if (!sid) return;
+                if (!isAuthenticated) {
+                  setToastMsg('로그인이 필요한 서비스 입니다.');
+                  setTimeout(()=> setToastMsg(""), 1800);
+                  return;
+                }
                 try {
                   const exists = await isFavApi(sid);
                   if (exists) {

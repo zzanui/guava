@@ -141,7 +141,7 @@ export default function HomePage() {
           {/* 소개 섹션: 히어로 검색바 하단으로 이동 */}
           <div id="about" className="mt-8 mx-auto max-w-4xl text-left">
             <div className="glass-card hero-intro-card rounded-2xl p-5 md:p-8 ring-1 ring-white/10 flex flex-col md:flex-row items-start gap-5 md:gap-6">
-              <img src="/guava-logo.png" alt="Guava 로고" className="shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover shadow-lg" />
+              <img src="/guava-logo.svg" alt="Guava 로고" className="shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover shadow-lg" />
               <div className="flex-1">
                 <div className="pill-note inline-flex items-center text-sm text-white/80">
                   구아바는 ‘구독 서비스 모아봐’ 의 줄임말입니다!

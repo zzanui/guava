@@ -2,7 +2,7 @@
 :root {
   --container-max: 80rem; /* ~1280px */
   /* 헤더/네비 공통 배경색 (요청 색상) */
-  --nav-header-bg: #171c3a;
+  --nav-header-bg: #111a2e;
 }
 
 /* 컨테이너 유틸 */

@@ -172,9 +172,15 @@ console.log(results.map(r => ({
       activeSection === key ? "bg-white/10 text-slate-100" : "hover:bg-white/5 text-slate-300"
     }`;
 
+  // '내 구독 리스트' 버튼은 활성 배경(음영)을 사용하지 않도록 고정 스타일 사용
+  const navClassStatic = () =>
+    "block w-full text-left rounded-xl px-3 py-2 transition focus-ring hover:bg-white/5 text-slate-300";
+
   const mySidebar = (
     <nav className="p-4 space-y-1">
-      <button className={navClass("subs")} onClick={() => scrollToRef(subsRef)}>내 구독 리스트</button>
+      <div className="px-3 pb-1 text-slate-200 font-semibold">마이페이지</div>
+      <hr className="my-2 border-white/10" />
+      <button className={navClassStatic()} onClick={() => scrollToRef(subsRef)}>내 구독 리스트</button>
       <button className={navClass("total")} onClick={() => scrollToRef(totalRef)}>구독료 합계</button>
       <button className={navClass("bookmarks")} onClick={() => scrollToRef(bookmarksRef)}>즐겨찾기</button>
       <button className={navClass("memo")} onClick={() => scrollToRef(memoRef)}>내 메모</button>

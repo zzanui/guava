@@ -119,7 +119,7 @@ export default function CategoryMenu({ inlineList = false }) {
   return (
     <div className="relative" onMouseEnter={openMenu} onMouseLeave={scheduleClose}>
       <button
-        className="rounded-xl px-3 py-2 hover:bg-white/10 transition"
+        className="rounded-xl px-3 py-2 hover:bg-white/10 transition text-[18px] font-semibold"
         aria-haspopup="true"
         aria-expanded={open}
         onKeyDown={onKeyDown}

@@ -10,7 +10,7 @@ export default function Header() {
     <header className="border-b border-white/10 sticky top-0 z-40" style={{ backgroundColor: "var(--nav-header-bg)" }}>
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-3">
         <Link to="/" className="flex items-center gap-2" aria-label="Guava 홈으로 이동">
-          <img src="/guava-logo.png" alt="Guava" className="h-8 w-auto" />
+          <img src="/guava-logo.svg" alt="Guava" className="h-10 w-auto" />
           <span className="text-xl font-extrabold tracking-tight text-gradient">구아바</span>
         </Link>
         <nav className="hidden md:flex items-center gap-4 text-sm">

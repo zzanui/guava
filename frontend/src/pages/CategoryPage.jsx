@@ -365,6 +365,11 @@ export default function CategoryPage() {
                         className="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs"
                         onClick={async (e)=> {
                           e.stopPropagation();
+                          if (!isAuthenticated) {
+                            setToastMsg('로그인이 필요한 서비스 입니다.');
+                            setTimeout(()=> setToastMsg(""), 1800);
+                            return;
+                          }
                           const idStr = String(s.id);
                           const isFav = bookmarkIds.has(idStr);
                           try {
@@ -464,6 +469,11 @@ export default function CategoryPage() {
                   <button
                     className="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs"
                     onClick={async ()=> {
+                      if (!isAuthenticated) {
+                        setToastMsg('로그인이 필요한 서비스 입니다.');
+                        setTimeout(()=> setToastMsg(""), 1800);
+                        return;
+                      }
                       const idStr = String(s.id);
                       const isFav = bookmarkIds.has(idStr);
                       try {

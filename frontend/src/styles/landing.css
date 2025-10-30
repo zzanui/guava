@@ -86,7 +86,7 @@ html {
 
 /* 소개 카드 강조 스타일 */
 .hero-intro-card {
-  background: rgba(17, 25, 40, 0.55);
+  background: var(--nav-header-bg);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 12px 30px rgba(102, 126, 234, 0.25), 0 6px 18px rgba(0, 0, 0, 0.35);
 }
