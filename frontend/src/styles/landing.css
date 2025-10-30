@@ -21,6 +21,37 @@ html {
   -webkit-text-fill-color: transparent;
 }
 
+/* 모바일에서 제목/문장 균형 잡힌 줄바꿈 */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* 헤드라인/본문 타이포 유틸 - 모바일 가독성 최적화 */
+.hero-title {
+  letter-spacing: -0.02em;
+  line-height: 1.24;
+}
+@media (max-width: 639.98px) {
+  .hero-title { /* 모바일 */
+    letter-spacing: -0.015em;
+    line-height: 1.22;
+  }
+}
+@media (min-width: 768px) {
+  .hero-title { /* 데스크톱 */
+    letter-spacing: -0.03em;
+    line-height: 1.18;
+  }
+}
+
+.hero-body {
+  letter-spacing: 0.005em;
+  line-height: 1.7;
+}
+@media (min-width: 768px) {
+  .hero-body { line-height: 1.65; }
+}
+
 .btn-primary {
   background-image: var(--landing-grad-2);
   color: #fff;
@@ -51,6 +82,26 @@ html {
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 소개 카드 강조 스타일 */
+.hero-intro-card {
+  background: rgba(17, 25, 40, 0.55);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.25), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* 알림형 말풍선 라벨 */
+.pill-note {
+  padding: 0.5rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* 버튼 그림자 강화 */
+.btn-elevated {
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.35);
 }
 
 .stat-number {

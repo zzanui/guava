@@ -92,12 +92,12 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-[1] w-full max-w-6xl text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight md:leading-[1.2]">
-            모든 구독을
-            <br className="hidden md:block" />
-            <span className="text-gradient">한눈에, 한 곳에서</span>
+          <h1 className="text-balance hero-title text-4xl sm:text-5xl md:text-6xl font-black">
+            <span className="block">모든 구독을</span>
+            <span className="text-gradient block sm:inline">한눈에,</span>
+            <span className="text-gradient block sm:inline sm:ml-2">한 곳에서</span>
           </h1>
-          <p className="mt-4 md:mt-6 text-base sm:text-lg md:text-xl text-white/80">
+          <p className="mt-4 md:mt-6 text-base sm:text-lg md:text-xl text-white/80 text-balance hero-body">
             OTT부터 클라우드까지, 흩어진 구독 서비스를 비교하고
             <br className="hidden md:block" />
             최적의 요금제를 찾아 매달 고정 비용을 절약하세요
@@ -140,21 +140,21 @@ export default function HomePage() {
 
           {/* 소개 섹션: 히어로 검색바 하단으로 이동 */}
           <div id="about" className="mt-8 mx-auto max-w-4xl text-left">
-            <div className="glass-card rounded-2xl p-6 md:p-8 ring-1 ring-white/10 flex flex-col md:flex-row items-start gap-6">
-              <img src="/guava-logo.png" alt="Guava 로고" className="shrink-0 w-12 h-12 rounded-xl object-cover" />
+            <div className="glass-card hero-intro-card rounded-2xl p-5 md:p-8 ring-1 ring-white/10 flex flex-col md:flex-row items-start gap-5 md:gap-6">
+              <img src="/guava-logo.png" alt="Guava 로고" className="shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover shadow-lg" />
               <div className="flex-1">
-                <div className="inline-flex items-center gap-2 text-sm text-white/80">
-                  <span className="px-2 py-1 rounded-full bg-white/10 border border-white/20">구아바는 ‘구독 서비스 모아봐’ 의 줄임말입니다!</span>
+                <div className="pill-note inline-flex items-center text-sm text-white/80">
+                  구아바는 ‘구독 서비스 모아봐’ 의 줄임말입니다!
                 </div>
-                <h2 className="mt-3 text-2xl md:text-3xl font-extrabold leading-tight">구독, 흩어져 있지 말고 한 곳에서.</h2>
-                <p className="mt-2 text-slate-300">
+                <h2 className="mt-3 text-balance hero-title text-2xl md:text-3xl font-extrabold">구독, 흩어져 있지 말고 <span className="text-gradient">한 곳에서.</span></h2>
+                <p className="mt-2 text-slate-300 hero-body">
                   구아바는 OTT·음악·클라우드 등 다양한 구독을 한데 모아 <span className="text-white font-semibold">비교</span>하고,
                   나에게 맞는 <span className="text-white font-semibold">최적 요금제</span>를 찾도록 돕는 서비스예요.<br/>
                   내 구독 목록을 관리하고, 카테고리별 지출을 확인해 매달 고정비를 <span className="text-white font-semibold">똑똑하게 절약</span>하세요.
                 </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <a href="#categories" className="btn-secondary rounded-xl px-4 py-2 focus-ring">카테고리 보기</a>
-                  <a href="/services" className="btn-primary rounded-xl px-4 py-2 focus-ring">지금 찾아보기</a>
+                <div className="mt-4 grid grid-cols-1 sm:flex gap-3 w-full">
+                  <a href="#categories" className="btn-secondary rounded-xl px-4 py-3 w-full sm:w-auto focus-ring">카테고리 보기</a>
+                  <a href="/services" className="btn-primary rounded-xl px-4 py-3 w-full sm:w-auto btn-elevated focus-ring">지금 찾아보기</a>
                 </div>
               </div>
             </div>

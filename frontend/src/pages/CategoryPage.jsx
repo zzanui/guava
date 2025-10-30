@@ -198,7 +198,7 @@ export default function CategoryPage() {
   }
 
   return (
-    <SidebarLayout>
+    <SidebarLayout hideSidebarOnMobile>
       <div className="container-page section-y">
         <div className="mx-auto w-full max-w-6xl">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
