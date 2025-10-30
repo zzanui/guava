@@ -95,7 +95,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         return Response({
             'count': queryset.count(),
             'results': serializer.data,
-            'total_price': total_price
+            'total_price': ceil(total_price)#121028은찬 : 소수점자리는 가독성을 떨어뜨리기 때문에 올림 처리
         })
 
     # 💡 2. CSV 내보내기 '액션'을 추가합니다.
@@ -143,11 +143,10 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
 
 
         # 2. 템플릿에 전달할 데이터(context) 준비
-        #121028은찬 : 소수점자리는 가독성을 떨어뜨리기 때문에 올림 처리
         context = {
             'user': request.user,
             'subscriptions': queryset,
-            'total_price': ceil(total_price)
+            'total_price': total_price
         }
 
         # 3. HTML 템플릿을 context 데이터와 "구워서" 문자열로 만듭니다.

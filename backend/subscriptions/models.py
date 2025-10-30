@@ -12,7 +12,7 @@ class Subscription(models.Model):
     status = models.BooleanField(db_column="status", default=True)
     start_date = models.DateField(db_column="start_date")
     next_payment_date = models.DateField(db_column="next_payment_date")
-    custom_memo = models.TextField(db_column="custom_memo")
+    custom_memo = models.TextField(db_column="custom_memo", null=True, blank=True)
     price_override = models.DecimalField(db_column="price_override", max_digits=10, decimal_places=2 , null=True, blank=True)
     created_at = models.DateTimeField(db_column="created_at", auto_now_add=True)
     updated_at = models.DateTimeField(db_column="updated_at", auto_now=True)
