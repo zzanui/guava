@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>구독 현황 보고서</title>
+    <style>
+        body { font-family: sans-serif; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .total { font-weight: bold; text-align: right; }
+    </style>
+</head>
+<body>
+    <h1>{{ user.username }}님의 구독 현황 보고서</h1>
+    <p>총 구독 개수: {{ subscriptions|length }}개</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>서비스명</th>
+                <th>요금제</th>
+                <th>가격</th>
+                <th>다음 결제일</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in subscriptions %}
+            <tr>
+                <td>{{ sub.plan.service.name }}</td>
+                <td>{{ sub.plan.plan_name }}</td>
+                <td>₩{{ sub.plan.price|floatformat:0 }}</td>
+                <td>{{ sub.next_payment_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p class="total">
+      총 결제(예정) 금액: ₩{{ total_price|floatformat:0 }}
+    </p>
+</body>
+</html>

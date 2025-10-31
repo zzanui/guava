@@ -75,7 +75,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'plan',  # plan_id (숫자)
         ]
         # 'user' 필드는 요청 본문(body)으로 받지 않고, 서버에서 자동으로 설정할 것이므로 읽기 전용으로 설정
-        read_only_fields = ['user', 'start_date', 'next_payment_date']
+        read_only_fields = ['user']
 
 class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:
