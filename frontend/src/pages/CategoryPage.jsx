@@ -4,6 +4,7 @@ import SidebarLayout from "../layouts/SidebarLayout.jsx";
 import { getServices, getServiceDetail } from "../services/serviceService";
 import { addSubscription, getSubscriptions } from "../services/subscriptionService";
 import useAuth from "../hooks/useAuth";
+import { useGuavaDialog } from "../context/GuavaDialogContext.jsx";
 import { listBookmarks, addBookmark as addBookmarkApi, removeBookmark as removeBookmarkApi } from "../services/bookmarksService.js";
 
 export default function CategoryPage() {
@@ -11,6 +12,7 @@ export default function CategoryPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth() || {};
+  const { alert: guavaAlert, confirm: guavaConfirm } = useGuavaDialog();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
@@ -124,7 +126,7 @@ export default function CategoryPage() {
 
   async function openAdd(serviceId, serviceName) {
     if (!isAuthenticated) {
-      alert("로그인이 필요한 서비스입니다.");
+      await guavaAlert("로그인이 필요한 서비스입니다.");
       navigate("/login", { replace: false, state: { from: location } });
       return;
     }
@@ -168,7 +170,7 @@ export default function CategoryPage() {
   async function confirmAdd() {
     if (!selectedPlanId) return;
     if (!startDate || !nextPaymentDate) {
-      alert("시작일과 다음 결제일을 입력해주세요.");
+      await guavaAlert("시작일과 다음 결제일을 입력해주세요.");
       return;
     }
     try {
@@ -178,7 +180,7 @@ export default function CategoryPage() {
         const items = Array.isArray(my?.results) ? my.results : [];
         const already = items.some((s)=> String(s.plan) === String(selectedPlanId));
         if (already) {
-          const ok = window.confirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
+          const ok = await guavaConfirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
           if (!ok) return;
         }
       } catch (_) {}
@@ -366,8 +368,8 @@ export default function CategoryPage() {
                         onClick={async (e)=> {
                           e.stopPropagation();
                           if (!isAuthenticated) {
-                            setToastMsg('로그인이 필요한 서비스 입니다.');
-                            setTimeout(()=> setToastMsg(""), 1800);
+                            await guavaAlert('로그인이 필요한 서비스 입니다.');
+                            navigate("/login", { replace: false, state: { from: location } });
                             return;
                           }
                           const idStr = String(s.id);
@@ -470,8 +472,8 @@ export default function CategoryPage() {
                     className="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs"
                     onClick={async ()=> {
                       if (!isAuthenticated) {
-                        setToastMsg('로그인이 필요한 서비스 입니다.');
-                        setTimeout(()=> setToastMsg(""), 1800);
+                        await guavaAlert('로그인이 필요한 서비스 입니다.');
+                        navigate("/login", { replace: false, state: { from: location } });
                         return;
                       }
                       const idStr = String(s.id);

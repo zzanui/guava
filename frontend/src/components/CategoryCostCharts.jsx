@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 function formatKRW(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) return "-";
-  return `₩ ${num.toLocaleString()}`;
+  return `₩ ${Math.ceil(num).toLocaleString()}`;
 }
 
 const PALETTES = {

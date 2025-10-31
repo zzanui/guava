@@ -6,12 +6,15 @@ import "./styles/globals.css";
 import "./styles/landing.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { GuavaDialogProvider } from "./context/GuavaDialogContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <GuavaDialogProvider>
+          <App />
+        </GuavaDialogProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>

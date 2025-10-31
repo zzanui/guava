@@ -5,11 +5,13 @@ import { getNote } from "../services/localPrefs.js";
 import { listBookmarks, addBookmark as addBookmarkApi, removeBookmark as removeBookmarkApi } from "../services/bookmarksService.js";
 import { addSubscription, getSubscriptions } from "../services/subscriptionService";
 import useAuth from "../hooks/useAuth";
+import { useGuavaDialog } from "../context/GuavaDialogContext.jsx";
 
 export default function AllServicesPage() {
   const nav = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth() || {};
+  const { alert: guavaAlert, confirm: guavaConfirm } = useGuavaDialog();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
@@ -146,7 +148,7 @@ export default function AllServicesPage() {
 
   async function openAdd(serviceId, serviceName) {
     if (!isAuthenticated) {
-      alert("로그인이 필요한 서비스입니다.");
+      await guavaAlert("로그인이 필요한 서비스입니다.");
       nav("/login", { replace: false, state: { from: location } });
       return;
     }
@@ -173,7 +175,7 @@ export default function AllServicesPage() {
   async function confirmAdd() {
     if (!selectedPlanId) return;
     if (!startDate || !nextPaymentDate) {
-      alert("시작일과 다음 결제일을 입력해주세요.");
+      await guavaAlert("시작일과 다음 결제일을 입력해주세요.");
       return;
     }
     try {
@@ -183,7 +185,7 @@ export default function AllServicesPage() {
         const myItems = Array.isArray(my?.results) ? my.results : [];
         const already = myItems.some((s)=> String(s.plan) === String(selectedPlanId));
         if (already) {
-          const ok = window.confirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
+          const ok = await guavaConfirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
           if (!ok) return;
         }
       } catch (_) {}
@@ -347,8 +349,8 @@ export default function AllServicesPage() {
                         onClick={async (e)=> {
                           e.stopPropagation();
                           if (!isAuthenticated) {
-                            setToastMsg('로그인이 필요한 서비스 입니다.');
-                            setTimeout(()=> setToastMsg(""), 1800);
+                            await guavaAlert('로그인이 필요한 서비스 입니다.');
+                            nav("/login", { replace: false, state: { from: location } });
                             return;
                           }
                           const idStr = String(s.id);
