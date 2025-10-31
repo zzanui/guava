@@ -10,6 +10,7 @@ import { addBookmark as addFavApi, isBookmarked as isFavApi } from "../services/
 import { getPriceHistory, listPromotions, listBundles } from "../services/mockApi";
 import SidebarLayout from "../layouts/SidebarLayout.jsx";
 import useAuth from "../hooks/useAuth";
+import { useGuavaDialog } from "../context/GuavaDialogContext.jsx";
 
 export default function ServiceDetailPage() {
   // 💡 2. URL의 동적인 ID 값을 가져옵니다.
@@ -17,6 +18,7 @@ export default function ServiceDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth() || {};
+  const { alert: guavaAlert, confirm: guavaConfirm } = useGuavaDialog();
 
   const [service, setService] = useState(null); // 상세 정보 (요금제 포함)
   const [loading, setLoading] = useState(false);
@@ -97,7 +99,7 @@ export default function ServiceDetailPage() {
   if (!service) return <div>서비스 정보가 없습니다.</div>;
   const openAdd = async (planId) => {
     if (!isAuthenticated) {
-      alert("로그인이 필요한 서비스입니다.");
+      await guavaAlert("로그인이 필요한 서비스입니다.");
       navigate("/login", { replace: false, state: { from: location } });
       return;
     }
@@ -142,7 +144,7 @@ export default function ServiceDetailPage() {
         const items = Array.isArray(my?.results) ? my.results : [];
         const already = items.some((s)=> String(s.plan) === String(selectedPlanId));
         if (already) {
-          const ok = window.confirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
+          const ok = await guavaConfirm("이미 내 구독리스트에 있습니다. 그래도 추가하시겠습니까?");
           if (!ok) return;
         }
       } catch (_) {}
@@ -186,8 +188,8 @@ export default function ServiceDetailPage() {
                 const sid = service?.id ?? data?.id;
                 if (!sid) return;
                 if (!isAuthenticated) {
-                  setToastMsg('로그인이 필요한 서비스 입니다.');
-                  setTimeout(()=> setToastMsg(""), 1800);
+                  await guavaAlert('로그인이 필요한 서비스 입니다.');
+                  navigate("/login", { replace: false, state: { from: location } });
                   return;
                 }
                 try {
@@ -380,9 +382,9 @@ export default function ServiceDetailPage() {
                   <div className="flex gap-2">
                     <button onClick={() => setAddOpen(false)} className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15">취소</button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (!startDate || !nextPaymentDate) {
-                          alert("시작일과 다음 결제일을 입력해주세요.");
+                          await guavaAlert("시작일과 다음 결제일을 입력해주세요.");
                           return;
                         }
                         handleAddSubscription();

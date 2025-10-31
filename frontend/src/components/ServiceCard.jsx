@@ -6,17 +6,19 @@ export default function ServiceCard({ id, name, price, tags = [], benefits, bill
   return (
     <div
       className={`rounded-2xl p-5 ring-1 shadow-lg transition cursor-pointer ${selected ? 'bg-slate-900/70 ring-fuchsia-500' : 'bg-slate-900/60 ring-white/10 hover:bg-slate-900/70'}`}
-      role={(canNavigate || selectable) ? "button" : undefined}
-      tabIndex={(canNavigate || selectable) ? 0 : undefined}
+      role={(canNavigate || selectable || onAdd) ? "button" : undefined}
+      tabIndex={(canNavigate || selectable || onAdd) ? 0 : undefined}
       onClick={() => {
         if (selectable && onAdd) { onAdd(); return; }
+        if (!canNavigate && onAdd) { onAdd(); return; }
         if (canNavigate) navigate(`/services/${id}`);
       }}
       onKeyDown={(e) => {
-        if (!(canNavigate || selectable)) return;
+        if (!(canNavigate || selectable || onAdd)) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           if (selectable && onAdd) { onAdd(); return; }
+          if (!canNavigate && onAdd) { onAdd(); return; }
           if (canNavigate) navigate(`/services/${id}`);
         }
       }}

@@ -1,8 +1,10 @@
 import React from "react";
+import { useGuavaDialog } from "../context/GuavaDialogContext.jsx";
 import { register as registerRequest } from "../services/authService";
 import { useForm } from "react-hook-form";
 
 export default function RegisterPage() {
+  const { alert: guavaAlert } = useGuavaDialog();
   const {
     register,
     handleSubmit,
@@ -27,7 +29,7 @@ export default function RegisterPage() {
     }
     try {
       await registerRequest(form);
-      alert("✅ 회원가입이 완료되었습니다. 로그인해 주세요.");
+      await guavaAlert("✅ 회원가입이 완료되었습니다. 로그인해 주세요.");
       window.location.href = "/login";
     } catch (err) {
       const data = err?.response?.data || {};

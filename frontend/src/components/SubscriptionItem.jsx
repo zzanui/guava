@@ -13,7 +13,7 @@ export default function SubscriptionItem({ name, price, startDate, nextPaymentDa
           )}
         </div>
         <div className="mt-1 text-xs text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
-          {startDate && <span className="whitespace-nowrap">시작일: {startDate}</span>}
+          {startDate && <span className="whitespace-nowrap">구독 시작일: {startDate}</span>}
           {nextPaymentDate && <span className="whitespace-nowrap">다음 결제일: {nextPaymentDate}</span>}
           {memo && <span className="truncate max-w-[40ch]">메모: {memo}</span>}
         </div>

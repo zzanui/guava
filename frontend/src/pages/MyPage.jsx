@@ -7,9 +7,11 @@ import { getServices } from "../services/serviceService";
 import api from "../services/api";
 import { listBookmarks, removeBookmark, listBookmarkEntries, clearBookmarkMemo } from "../services/bookmarksService.js";
 import SidebarLayout from "../layouts/SidebarLayout.jsx";
+import { useGuavaDialog } from "../context/GuavaDialogContext.jsx";
 import CategoryCostCharts from "../components/CategoryCostCharts.jsx";
 
 export default function MyPage() {
+  const { alert: guavaAlert, confirm: guavaConfirm } = useGuavaDialog();
   const [subs, setSubs] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -162,7 +164,7 @@ console.log(results.map(r => ({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("파일 다운로드 오류:", error);
-      alert("리포트 파일을 다운로드하는 중 오류가 발생했습니다.");
+      await guavaAlert("리포트 파일을 다운로드하는 중 오류가 발생했습니다.");
     }
   };
 
@@ -221,7 +223,7 @@ console.log(results.map(r => ({
                   <div className="font-medium truncate">{`${s.plan_service_name || ""} ${s.plan_name || ""}`.trim()}</div>
                   <div className="mt-1 text-xs text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
                     {s.start_date && (
-                      <span className="whitespace-nowrap">시작일: {s.start_date}</span>
+                      <span className="whitespace-nowrap">구독 시작일: {s.start_date}</span>
                     )}
                     {s.next_payment_date && (
                       <span className="whitespace-nowrap">다음 결제일: {s.next_payment_date}</span>
@@ -242,7 +244,7 @@ console.log(results.map(r => ({
                   </div>
                   <button
                     onClick={async () => {
-                      const ok = window.confirm("정말 삭제하시겠습니까?");
+                      const ok = await guavaConfirm("정말 삭제하시겠습니까?");
                       if (!ok) return;
                       try {
                         await deleteSubscription(s.id);
@@ -331,8 +333,8 @@ console.log(results.map(r => ({
                     )}
                     <button
                       className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15"
-                      onClick={() => {
-                        const ok = window.confirm("정말 해제하시겠습니까?");
+                      onClick={async () => {
+                        const ok = await guavaConfirm("정말 해제하시겠습니까?");
                         if (!ok) return;
                         removeBookmark(idStr)
                           .catch(() => {})

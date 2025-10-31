@@ -1,9 +1,11 @@
 // src/pages/SubscriptionListPage.jsx
 import { useEffect, useState } from "react";
+import { useGuavaDialog } from "../context/GuavaDialogContext.jsx";
 import SubscriptionItem from "../components/SubscriptionItem.jsx";
 import { getSubscriptions, deleteSubscription } from "../services/subscriptionService";
 
 export default function SubscriptionListPage() {
+  const { confirm: guavaConfirm } = useGuavaDialog();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +51,7 @@ export default function SubscriptionListPage() {
             nextPaymentDate={sub.next_payment_date}
             memo={(sub.custom_memo || "").trim()}
             onDelete={async () => {
-              const ok = window.confirm("정말 삭제하시겠습니까?");
+              const ok = await guavaConfirm("정말 삭제하시겠습니까?");
               if (!ok) return;
               try {
                 await deleteSubscription(sub.id);
