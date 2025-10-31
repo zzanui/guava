@@ -1,7 +1,7 @@
 // src/pages/MyPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { getSubscriptions, deleteSubscription } from "../services/subscriptionService";
+import { getSubscriptions, deleteSubscription, updateSubscription } from "../services/subscriptionService";
 import { getPrefs, setNotification, setTelecom, toggleCard } from "../services/localPrefs.js";
 import { getServices } from "../services/serviceService";
 import api from "../services/api";
@@ -26,6 +26,13 @@ export default function MyPage() {
   const [bookmarkIds, setBookmarkIds] = useState(new Set());
   const [memoEntries, setMemoEntries] = useState([]);
   const [activeSection, setActiveSection] = useState("subs");
+  // 편집 모달 상태
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editNextDate, setEditNextDate] = useState("");
+  const [editMemo, setEditMemo] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const SHOW_TELECOM = false;
   const SHOW_CARDS = false;
   const SHOW_NOTIFICATIONS = false;
@@ -243,6 +250,18 @@ console.log(results.map(r => ({
                     <span>₩ {Number(s.price_override ?? s.plan_price ?? 0).toLocaleString()}</span>
                   </div>
                   <button
+                    onClick={() => {
+                      setEditingId(s.id);
+                      setEditStartDate(String(s.start_date || ""));
+                      setEditNextDate(String(s.next_payment_date || ""));
+                      setEditMemo(String(s.custom_memo || ""));
+                      setEditOpen(true);
+                    }}
+                    className="px-3 py-1 rounded-2xl bg-white/10 hover:bg-white/15"
+                  >
+                    편집
+                  </button>
+                  <button
                     onClick={async () => {
                       const ok = await guavaConfirm("정말 삭제하시겠습니까?");
                       if (!ok) return;
@@ -426,6 +445,74 @@ console.log(results.map(r => ({
           )}
         </div>
       </div>
+      {/* 편집 모달 */}
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => !savingEdit && setEditOpen(false)} />
+          <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 p-6 ring-1 ring-white/10">
+            <h3 className="text-lg font-semibold">구독 정보 편집</h3>
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <div>
+                <label className="text-sm block mb-1">구독 시작일</label>
+                <input type="date" value={editStartDate} onChange={(e)=> setEditStartDate(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2" />
+              </div>
+              <div>
+                <label className="text-sm block mb-1">다음 결제일</label>
+                <input type="date" value={editNextDate} onChange={(e)=> setEditNextDate(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 px-3 py-2" />
+              </div>
+              <div>
+                <label className="text-sm block mb-1">메모</label>
+                <textarea rows={4} value={editMemo} onChange={(e)=> setEditMemo(e.target.value)} className="w-full rounded-xl bg-slate-950 border border-white/10 p-3" placeholder="예: 다음 결제 전 해지 예정" />
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15"
+                onClick={() => setEditOpen(false)}
+                disabled={savingEdit}
+              >
+                취소
+              </button>
+              <button
+                className="px-4 py-2 rounded-2xl btn-primary disabled:opacity-60"
+                disabled={savingEdit}
+                onClick={async () => {
+                  if (!editStartDate || !editNextDate) {
+                    await guavaAlert("구독 시작일과 다음 결제일을 입력해주세요.");
+                    return;
+                  }
+                  if (String(editNextDate) < String(editStartDate)) {
+                    await guavaAlert("다음 결제일은 구독 시작일 이후여야 합니다.");
+                    return;
+                  }
+                  try {
+                    setSavingEdit(true);
+                    await updateSubscription(editingId, {
+                      start_date: editStartDate,
+                      next_payment_date: editNextDate,
+                      custom_memo: editMemo,
+                    });
+                    // 로컬 상태 갱신
+                    setSubs((prev) => prev.map((it) => it.id === editingId ? {
+                      ...it,
+                      start_date: editStartDate,
+                      next_payment_date: editNextDate,
+                      custom_memo: editMemo,
+                    } : it));
+                    setEditOpen(false);
+                  } catch (e) {
+                    await guavaAlert("수정 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.");
+                  } finally {
+                    setSavingEdit(false);
+                  }
+                }}
+              >
+                {savingEdit ? '저장 중…' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </div>
       </div>
     </SidebarLayout>

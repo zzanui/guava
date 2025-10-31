@@ -40,3 +40,8 @@ export const addSubscription = async (
 export const deleteSubscription = async (id) => {
   return api.delete(`/api/my/subscriptions/${id}/`);
 };
+
+export const updateSubscription = async (id, payload) => {
+  // payload: { start_date?: string, next_payment_date?: string, custom_memo?: string, price_override?: number }
+  return api.patch(`/api/my/subscriptions/${id}/`, payload);
+};
