@@ -1,0 +1,1196 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 0.0.0
+paths:
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: |-
+        클라이언트에서 refresh 토큰을 body로 보내야 함.
+        예: {"refresh": "<refresh_token>"}
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+  /api/cards/:
+    get:
+      operationId: cards_list
+      description: |-
+        카드사 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      tags:
+      - cards
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+          description: ''
+  /api/cards/{id}/:
+    get:
+      operationId: cards_retrieve
+      description: |-
+        카드사 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this card.
+        required: true
+      tags:
+      - cards
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+          description: ''
+  /api/my/bookmarks/:
+    get:
+      operationId: my_bookmarks_list
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bookmark'
+          description: ''
+    post:
+      operationId: my_bookmarks_create
+      tags:
+      - my
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bookmark'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Bookmark'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Bookmark'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bookmark'
+          description: ''
+  /api/my/bookmarks/{id}/:
+    get:
+      operationId: my_bookmarks_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Bookmark ID
+        required: true
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bookmark'
+          description: ''
+    put:
+      operationId: my_bookmarks_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Bookmark ID
+        required: true
+      tags:
+      - my
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Bookmark'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Bookmark'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Bookmark'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bookmark'
+          description: ''
+    patch:
+      operationId: my_bookmarks_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Bookmark ID
+        required: true
+      tags:
+      - my
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBookmark'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBookmark'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBookmark'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bookmark'
+          description: ''
+    delete:
+      operationId: my_bookmarks_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Bookmark ID
+        required: true
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/my/subscriptions/:
+    get:
+      operationId: my_subscriptions_list
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+          description: ''
+    post:
+      operationId: my_subscriptions_create
+      tags:
+      - my
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/my/subscriptions/{id}/:
+    get:
+      operationId: my_subscriptions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Subscription ID
+        required: true
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+    put:
+      operationId: my_subscriptions_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Subscription ID
+        required: true
+      tags:
+      - my
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+    patch:
+      operationId: my_subscriptions_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Subscription ID
+        required: true
+      tags:
+      - my
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSubscription'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSubscription'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSubscription'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+    delete:
+      operationId: my_subscriptions_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Subscription ID
+        required: true
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/my/subscriptions/export_csv/:
+    get:
+      operationId: my_subscriptions_export_csv_retrieve
+      description: |-
+        현재 사용자의 구독 목록을 CSV 파일로 내보냅니다.
+        URL: /api/my/subscriptions/export_csv/
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/my/subscriptions/export_pdf/:
+    get:
+      operationId: my_subscriptions_export_pdf_retrieve
+      description: |-
+        현재 사용자의 구독 현황을 PDF 파일로 내보냅니다.
+        URL: /api/my/subscriptions/export_pdf/
+      tags:
+      - my
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/services/:
+    get:
+      operationId: services_list
+      description: |-
+        모든 구독 서비스의 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      parameters:
+      - in: query
+        name: categories
+        schema:
+          type: array
+          items:
+            type: string
+        description: Multiple values may be separated by commas.
+        explode: false
+        style: form
+      - in: query
+        name: max_price
+        schema:
+          type: number
+      - in: query
+        name: min_price
+        schema:
+          type: number
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: sort
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - -name
+            - -price
+            - name
+            - price
+        description: |-
+          Ordering
+
+          * `price` - Price
+          * `-price` - Price (descending)
+          * `name` - Name
+          * `-name` - Name (descending)
+        explode: false
+        style: form
+      tags:
+      - services
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+          description: ''
+  /api/services/{id}/:
+    get:
+      operationId: services_retrieve
+      description: |-
+        모든 구독 서비스의 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Service ID
+        required: true
+      tags:
+      - services
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDetail'
+          description: ''
+  /api/services/{service_pk}/plans/:
+    get:
+      operationId: services_plans_list
+      description: |-
+        특정 서비스에 속한 요금제 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      parameters:
+      - in: path
+        name: service_pk
+        schema:
+          type: integer
+          description: Service ID
+        required: true
+      tags:
+      - services
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/services/{service_pk}/plans/{id}/:
+    get:
+      operationId: services_plans_retrieve
+      description: |-
+        특정 서비스에 속한 요금제 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+          description: Plan ID
+        required: true
+      - in: path
+        name: service_pk
+        schema:
+          type: integer
+          description: Service ID
+        required: true
+      tags:
+      - services
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/services/compare/:
+    get:
+      operationId: services_compare_list
+      description: 여러 서비스 ID를 받아 상세 정보를 비교하여 반환하는 API
+      tags:
+      - services
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceDetail'
+          description: ''
+  /api/telecoms/:
+    get:
+      operationId: telecoms_list
+      description: |-
+        통신사 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      tags:
+      - telecoms
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Telecom'
+          description: ''
+  /api/telecoms/{id}/:
+    get:
+      operationId: telecoms_retrieve
+      description: |-
+        통신사 목록 및 상세 정보를 조회합니다.
+        (권한: 누구나 조회 가능)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this telecom.
+        required: true
+      tags:
+      - telecoms
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Telecom'
+          description: ''
+components:
+  schemas:
+    Bookmark:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Bookmark ID
+        service:
+          type: integer
+          description: Service ID
+        memo:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - service
+    Card:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    PatchedBookmark:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Bookmark ID
+        service:
+          type: integer
+          description: Service ID
+        memo:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedSubscription:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Subscription ID
+        plan_name:
+          type: string
+          readOnly: true
+        plan_service_name:
+          type: string
+          readOnly: true
+        plan_service_category:
+          type: string
+          readOnly: true
+        plan_price:
+          type: string
+          readOnly: true
+        plan_billing_cycle:
+          type: string
+          readOnly: true
+        status:
+          type: boolean
+        start_date:
+          type: string
+          format: date
+        next_payment_date:
+          type: string
+          format: date
+        custom_memo:
+          type: string
+          nullable: true
+        price_override:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        user:
+          type: integer
+          readOnly: true
+        plan:
+          type: integer
+          description: Plan ID
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Plan ID
+        plan_name:
+          type: string
+          maxLength: 100
+        billing_cycle:
+          type: string
+          maxLength: 50
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        benefits:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        service:
+          type: integer
+          description: Service ID
+      required:
+      - created_at
+      - id
+      - plan_name
+      - price
+      - service
+      - updated_at
+    Register:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+        password2:
+          type: string
+          writeOnly: true
+        social_id:
+          type: string
+          nullable: true
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 50
+        display_name:
+          type: string
+          maxLength: 50
+      required:
+      - display_name
+      - name
+      - password
+      - password2
+      - user_id
+      - username
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Service ID
+        min_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,0})?$
+          readOnly: true
+        max_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,0})?$
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        category:
+          type: string
+          nullable: true
+          maxLength: 40
+        description:
+          type: string
+          nullable: true
+        official_link:
+          type: string
+          nullable: true
+          maxLength: 255
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - max_price
+      - min_price
+      - name
+      - updated_at
+    ServiceDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Service ID
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Plan'
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        category:
+          type: string
+          nullable: true
+          maxLength: 40
+        description:
+          type: string
+          nullable: true
+        official_link:
+          type: string
+          nullable: true
+          maxLength: 255
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - plans
+      - updated_at
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: Subscription ID
+        plan_name:
+          type: string
+          readOnly: true
+        plan_service_name:
+          type: string
+          readOnly: true
+        plan_service_category:
+          type: string
+          readOnly: true
+        plan_price:
+          type: string
+          readOnly: true
+        plan_billing_cycle:
+          type: string
+          readOnly: true
+        status:
+          type: boolean
+        start_date:
+          type: string
+          format: date
+        next_payment_date:
+          type: string
+          format: date
+        custom_memo:
+          type: string
+          nullable: true
+        price_override:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        user:
+          type: integer
+          readOnly: true
+        plan:
+          type: integer
+          description: Plan ID
+      required:
+      - id
+      - next_payment_date
+      - plan
+      - plan_billing_cycle
+      - plan_name
+      - plan_price
+      - plan_service_category
+      - plan_service_name
+      - start_date
+      - user
+    Telecom:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

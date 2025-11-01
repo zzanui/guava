@@ -77,7 +77,7 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label className="text-sm block mb-1" htmlFor="email">이메일 (선택)</label>
+          <label className="text-sm block mb-1" htmlFor="email">이메일</label>
           <input id="email" type="email" aria-invalid={Boolean(errors.email)} {...register("email", { pattern: { value: /.+@.+\..+/, message: "이메일 형식이 올바르지 않습니다." } })} className="w-full rounded-2xl bg-slate-900 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-fuchsia-400" />
           {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>}
         </div>

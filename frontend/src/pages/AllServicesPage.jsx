@@ -24,7 +24,7 @@ export default function AllServicesPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [categories, setCategories] = useState([]); // 전체 데이터에서 채워짐
   const [selectedCategories, setSelectedCategories] = useState([]); // 다중 선택
-  const [onlyBookmark, setOnlyBookmark] = useState(false);
+  
   const [bookmarkIds, setBookmarkIds] = useState(new Set()); // 서버 동기화 기반
   const [inputText, setInputText] = useState("");
   const [toastMsg, setToastMsg] = useState("");
@@ -54,9 +54,13 @@ export default function AllServicesPage() {
         if (!cancelled) {
           const list = Array.isArray(rows) ? rows : [];
           setItems(list);
-          // 카테고리 목록 생성
-          const cats = Array.from(new Set(list.map((s) => String(s.category || "").trim()).filter(Boolean))).sort((a,b)=> a.localeCompare(b));
-          setCategories(cats);
+          // 카테고리 목록 생성 (사이드바 순서와 정렬 일치, books 포함)
+          const rawCats = Array.from(new Set(list.map((s) => String(s.category || "").trim()).filter(Boolean)));
+          const sidebarOrder = ['video', 'music', 'books', 'shopping', 'delivery', 'ai', 'cloud_storage', 'productivity', 'design'];
+          const withBooks = Array.from(new Set([...rawCats, 'books']));
+          const ordered = sidebarOrder.filter((c) => withBooks.includes(c));
+          const remaining = withBooks.filter((c) => !sidebarOrder.includes(c)).sort((a,b)=> a.localeCompare(b));
+          setCategories([...ordered, ...remaining]);
 
           // 가격 정보 보강: 각 서비스 상세 플랜에서 최소/최대 가격 및 주기 계산
           Promise.allSettled((list || []).map((s) => getServiceDetail(s.id)))
@@ -115,10 +119,7 @@ export default function AllServicesPage() {
       const set = new Set(selectedCategories.map((c)=> String(c).toLowerCase()));
       rows = rows.filter((s)=> set.has(String(s.category||"").toLowerCase()));
     }
-    if (onlyBookmark) {
-      const bmSet = bookmarkIds;
-      rows = rows.filter((s)=> bmSet.has(String(s.id)));
-    }
+    
     const minV = Number(minPrice);
     const maxV = Number(maxPrice);
     if (Number.isFinite(minV) && minPrice !== "") {
@@ -132,7 +133,7 @@ export default function AllServicesPage() {
     else if (sort === "priceDesc") rows = [...rows].sort((a,b)=> Number(b.min_price||0) - Number(a.min_price||0));
     else if (sort === "nameAsc") rows = [...rows].sort((a,b)=> (a.name||'').localeCompare(b.name||''));
     return rows;
-  }, [items, query, selectedCategories, minPrice, maxPrice, sort, onlyBookmark, bookmarkIds]);
+  }, [items, query, selectedCategories, minPrice, maxPrice, sort]);
 
   const selectedIds = useMemo(() => Object.entries(selected).filter(([, v]) => v).map(([k]) => k), [selected]);
   const selectedNameById = useMemo(() => Object.fromEntries(items.map((s) => [String(s.id), s.name])), [items]);
@@ -241,7 +242,6 @@ export default function AllServicesPage() {
                   setSelectedCategories([]);
                   setMinPrice("");
                   setMaxPrice("");
-                  setOnlyBookmark(false);
                   setSort("recommended");
                 }}
                 className="h-10 whitespace-nowrap rounded-2xl px-4 bg-white/10 hover:bg-white/15"
@@ -249,34 +249,31 @@ export default function AllServicesPage() {
             </form>
             <div>
               <label className="text-sm block mb-1" htmlFor="sort">정렬</label>
-              <select id="sort" value={sort} onChange={(e)=> setSort(e.target.value)} className="rounded-2xl bg-slate-900 border border-white/10 px-3 py-2">
-                <option value="recommended">추천순</option>
-                <option value="priceAsc">가격 낮은순</option>
-                <option value="priceDesc">가격 높은순</option>
-                <option value="nameAsc">가나다순</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <select id="sort" value={sort} onChange={(e)=> setSort(e.target.value)} className="rounded-2xl bg-slate-900 border border-white/10 px-3 h-10">
+                  <option value="recommended">추천순</option>
+                  <option value="priceAsc">가격 낮은순</option>
+                  <option value="priceDesc">가격 높은순</option>
+                  <option value="nameAsc">가나다순</option>
+                </select>
+              </div>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
+            <div className="col-span-2 md:col-span-2">
               <label className="text-sm block mb-1">카테고리</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {categories.map((c)=> {
                   const active = selectedCategories.includes(c);
                   return (
-                    <button key={c} type="button" onClick={()=> setSelectedCategories((prev)=> active ? prev.filter(x=>x!==c) : [...prev, c])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'btn-primary text-slate-50' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>
-                      #{c}
-                      <span className="ml-2 text-xs text-slate-300">{categoryCounts.get(c) || 0}</span>
+                    <button key={c} type="button" onClick={()=> setSelectedCategories((prev)=> active ? prev.filter(x=>x!==c) : [...prev, c])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 w-full flex items-center justify-between text-left ${active? 'btn-primary text-slate-50' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>
+                      <span className="truncate">#{c}</span>
+                      <span className="ml-2 shrink-0 text-xs text-slate-300">{categoryCounts.get(c) || 0}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm inline-flex items-center gap-2 mt-6 md:mt-0">
-                <input type="checkbox" className="accent-fuchsia-500" checked={onlyBookmark} onChange={(e)=> setOnlyBookmark(e.target.checked)} /> 즐겨찾기만 보기
-              </label>
             </div>
             <div>
               <label className="text-sm block mb-1" htmlFor="min">최소 가격</label>
@@ -285,19 +282,22 @@ export default function AllServicesPage() {
             <div>
               <label className="text-sm block mb-1" htmlFor="max">최대 가격</label>
               <input id="max" type="number" inputMode="numeric" className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2" placeholder="20000" value={maxPrice} onChange={(e)=> setMaxPrice(e.target.value)} />
-            </div>
-            <div className="md:col-span-2">
-              <button type="button" onClick={()=> { setSelectedCategories([]); setMinPrice(""); setMaxPrice(""); setSort("recommended"); setOnlyBookmark(false); }} className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15">필터 초기화</button>
+              <button
+                type="button"
+                onClick={()=> { setSelectedCategories([]); setMinPrice(""); setMaxPrice(""); setSort("recommended"); }}
+                className="mt-2 w-full h-10 whitespace-nowrap rounded-2xl px-4 btn-primary text-slate-50 font-semibold hover:opacity-95 transition"
+              >
+                필터 초기화
+              </button>
             </div>
           </div>
 
-          {(selectedCategories.length>0 || minPrice || maxPrice || onlyBookmark) && (
+          {(selectedCategories.length>0 || minPrice || maxPrice) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-slate-400 mr-1">적용된 필터:</span>
               {selectedCategories.map((c)=> (<span key={c} className="px-2 py-1 rounded-2xl bg-white/10">#{c}</span>))}
               {minPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최소 {minPrice}</span>}
               {maxPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최대 {maxPrice}</span>}
-              {onlyBookmark && <span className="px-2 py-1 rounded-2xl bg-white/10">즐겨찾기만</span>}
             </div>
           )}
         </div>

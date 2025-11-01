@@ -28,15 +28,14 @@ export default function ServiceSearchPage() {
   const [sort, setSort] = useState("recommended");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [benefitChips, setBenefitChips] = useState(["FHD", "4K", "광고 제거"]);
-  const [selectedBenefits, setSelectedBenefits] = useState([]);
+  
   const [categories, setCategories] = useState([]);
   const [opCategory, setOpCategory] = useState("or");
   const [page, setPage] = useState(1);
   const pageSize = 9;
   const didResetRef = useRef(false);
   const [inputText, setInputText] = useState("");
-  const [onlyBookmark, setOnlyBookmark] = useState(false);
+  
   const [bookmarkIds, setBookmarkIds] = useState(new Set());
   const [selected, setSelected] = useState({}); // id -> true
   const [hint, setHint] = useState("");
@@ -67,10 +66,10 @@ export default function ServiceSearchPage() {
     setSort("recommended");
     setMinPrice("");
     setMaxPrice("");
-    setSelectedBenefits([]);
+    
     setCategories([]);
     setOpCategory("or");
-    setOnlyBookmark(false);
+    
     setPage(1);
     setSelected({});
     setInputText("");
@@ -102,8 +101,7 @@ export default function ServiceSearchPage() {
     
     const opCat = query.get("opCat");
     if (opCat === "and" || opCat === "or") setOpCategory(opCat);
-    const benefitAll = query.getAll("benefit");
-    if (benefitAll.length) setSelectedBenefits(benefitAll);
+    
     const cats = query.getAll("cat");
     if (cats.length) setCategories(cats);
     const p = query.get("page");
@@ -120,13 +118,13 @@ export default function ServiceSearchPage() {
     if (maxPrice) params.set("max", String(maxPrice));
     
     if (opCategory && opCategory !== "or") params.set("opCat", opCategory);
-    selectedBenefits.forEach((b) => params.append("benefit", b));
+    
     categories.forEach((c) => params.append("cat", c));
     if (page > 1) params.set("page", String(page));
     const prev = searchParams.toString();
     const next = params.toString();
     if (prev !== next) setSearchParams(params, { replace: true });
-  }, [q, sort, minPrice, maxPrice, selectedBenefits, categories, opCategory, page, searchParams, setSearchParams]);
+  }, [q, sort, minPrice, maxPrice, categories, opCategory, page, searchParams, setSearchParams]);
 
 useEffect(() => {
 let cancelled = false;
@@ -231,7 +229,7 @@ return () => {
   // 필터 변경 시 페이지 리셋
   useEffect(() => {
     setPage(1);
-  }, [q, sort, categories, opCategory, minPrice, maxPrice, selectedBenefits]);
+  }, [q, sort, categories, opCategory, minPrice, maxPrice]);
 
   // 카테고리 목록/카운트 동적 생성
   const availableCategories = useMemo(() => {
@@ -257,10 +255,7 @@ return () => {
       const set = new Set(categories.map((c)=> String(c).toLowerCase()));
       rows = rows.filter((s)=> set.has(String(s.category||"").toLowerCase()));
     }
-    if (onlyBookmark) {
-      const bmSet = bookmarkIds;
-      rows = rows.filter((s)=> bmSet.has(String(s.id)));
-    }
+    
     const minV = Number(minPrice);
     const maxV = Number(maxPrice);
     if (Number.isFinite(minV) && minPrice !== "") {
@@ -273,7 +268,7 @@ return () => {
     else if (sort === "priceDesc") rows = [...rows].sort((a,b)=> Number(b.min_price||0) - Number(a.min_price||0));
     else if (sort === "nameAsc") rows = [...rows].sort((a,b)=> (a.name||'').localeCompare(b.name||''));
     return rows;
-  }, [items, q, categories, onlyBookmark, minPrice, maxPrice, sort, bookmarkIds]);
+  }, [items, q, categories, minPrice, maxPrice, sort]);
 
   const selectedIds = useMemo(() => Object.entries(selected).filter(([, v]) => v).map(([k]) => k), [selected]);
 
@@ -437,35 +432,24 @@ return () => {
             <div>
               <label className="text-sm block mb-1" htmlFor="max">최대 가격</label>
               <input id="max" type="number" inputMode="numeric" className="w-full rounded-2xl bg-slate-900 border border-white/10 px-3 py-2" placeholder="20000" value={maxPrice} onChange={(e)=>setMaxPrice(e.target.value)} />
+              <button
+                type="button"
+                onClick={()=>{setMinPrice("");setMaxPrice("");setCategories([]);setSort("recommended");}}
+                className="mt-2 w-full h-10 whitespace-nowrap rounded-2xl px-4 btn-primary text-slate-50 font-semibold hover:opacity-95 transition"
+              >
+                필터 초기화
+              </button>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm inline-flex items-center gap-2 mt-6 md:mt-0">
-                <input type="checkbox" className="accent-fuchsia-500" checked={onlyBookmark} onChange={(e)=> setOnlyBookmark(e.target.checked)} /> 즐겨찾기만 보기
-              </label>
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm block mb-1">혜택</label>
-              <div className="flex flex-wrap gap-2">
-                {benefitChips.map((b)=>{
-                  const active = selectedBenefits.includes(b);
-                  return (
-                    <button key={b} type="button" onClick={()=>setSelectedBenefits(prev=> active? prev.filter(x=>x!==b): [...prev,b])} className={`px-3 py-1 rounded-2xl ring-1 ring-white/10 ${active? 'btn-primary text-slate-50' : 'bg-white/10 text-slate-200 hover:bg-white/15'}`}>{b}</button>
-                  )
-                })}
-              </div>
-            </div>
-            <button type="button" onClick={()=>{setMinPrice("");setMaxPrice("");setSelectedBenefits([]);setCategories([]);setOnlyBookmark(false);setSort("recommended");}} className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15">필터 초기화</button>
+            
+            
           </div>
-          {(selectedBenefits.length>0 || minPrice || maxPrice || categories.length>0) && (
+          {(minPrice || maxPrice || categories.length>0) && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-slate-400 mr-1">적용된 필터:</span>
               {categories.map((c)=> (<span key={c} className="px-2 py-1 rounded-2xl bg-white/10">#{c}</span>))}
               {minPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최소 {minPrice}</span>}
               {maxPrice && <span className="px-2 py-1 rounded-2xl bg-white/10">최대 {maxPrice}</span>}
-              {selectedBenefits.map((b)=> (
-                <span key={b} className="px-2 py-1 rounded-2xl bg-white/10">{b}</span>
-              ))}
-              {onlyBookmark && <span className="px-2 py-1 rounded-2xl bg-white/10">즐겨찾기만</span>}
+              
             </div>
           )}
         </div>
